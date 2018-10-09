@@ -5,7 +5,9 @@ use gio::prelude::*;
 use gio::MenuExt;
 use gtk::prelude::*;
 
+use std::cell::RefCell;
 use std::env::args;
+use std::rc::{Rc, Weak};
 
 macro_rules! upgrade_weak {
     ($x:ident, $r:expr) => {{
@@ -19,7 +21,32 @@ macro_rules! upgrade_weak {
     };
 }
 
-fn build_menu(application: &gtk::Application, window: &gtk::ApplicationWindow) {
+#[derive(Clone)]
+struct App(Rc<RefCell<AppInner>>);
+
+struct AppWeak(Weak<RefCell<AppInner>>);
+
+impl App {
+    fn new() -> App {
+        App(Rc::new(RefCell::new(AppInner { main_window: None })))
+    }
+
+    fn downgrade(&self) -> AppWeak {
+        AppWeak(Rc::downgrade(&self.0))
+    }
+}
+
+impl AppWeak {
+    fn upgrade(&self) -> Option<App> {
+        self.0.upgrade().map(App)
+    }
+}
+
+struct AppInner {
+    main_window: Option<gtk::ApplicationWindow>,
+}
+
+fn build_menu(_app: &App, application: &gtk::Application) {
     let menu = gio::Menu::new();
 
     menu.append("Quit", "app.quit");
@@ -29,9 +56,9 @@ fn build_menu(application: &gtk::Application, window: &gtk::ApplicationWindow) {
 
     // Connect the about menu entry click event.
     let about = gio::SimpleAction::new("about", None);
-    let weak_window = window.downgrade();
+    let weak_application = application.downgrade();
     about.connect_activate(move |_, _| {
-        let window = upgrade_weak!(weak_window);
+        let application = upgrade_weak!(weak_application);
         let p = gtk::AboutDialog::new();
         p.set_authors(&["Sebastian Dröge", "Guillaume Gomez"]);
         p.set_website_label(Some("github repository"));
@@ -40,16 +67,19 @@ fn build_menu(application: &gtk::Application, window: &gtk::ApplicationWindow) {
         ));
         p.set_comments(Some("A webcam viewer written with gtk-rs and gstreamer-rs"));
         p.set_copyright(Some("This is under MIT license"));
-        p.set_transient_for(Some(&window));
+        if let Some(window) = application.get_active_window() {
+            p.set_transient_for(Some(&window));
+        }
         p.set_modal(true);
         p.set_program_name("RustFest GTK+GStreamer");
         p.show_all();
     });
+
     let quit = gio::SimpleAction::new("quit", None);
-    let weak_window = window.downgrade();
+    let weak_application = application.downgrade();
     quit.connect_activate(move |_, _| {
-        let window = upgrade_weak!(weak_window);
-        window.destroy();
+        let application = upgrade_weak!(weak_application);
+        application.quit();
     });
 
     application.add_action(&about);
@@ -58,8 +88,9 @@ fn build_menu(application: &gtk::Application, window: &gtk::ApplicationWindow) {
     application.set_app_menu(&menu);
 }
 
-fn build_ui(application: &gtk::Application) {
+fn build_ui(app: &App, application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
+    app.0.borrow_mut().main_window = Some(window.clone());
 
     window.set_title("RustFest 2018 GTK+GStreamer");
     window.set_border_width(5);
@@ -93,19 +124,42 @@ fn build_ui(application: &gtk::Application) {
     vertical_layout.pack_start(&draw_area, true, true, 0);
 
     window.add(&vertical_layout);
-
-    build_menu(application, &window);
-
-    window.show_all();
 }
 
 fn main() {
-    let application = gtk::Application::new("com.github.rustfest",
-                                            gio::ApplicationFlags::empty())
-                                       .expect("Initialization failed...");
+    let app = App::new();
 
-    application.connect_startup(|app| {
-        build_ui(app);
+    let application = gtk::Application::new("com.github.rustfest", gio::ApplicationFlags::empty())
+        .expect("Initialization failed...");
+
+    let app_weak = app.downgrade();
+    application.connect_startup(move |application| {
+        let app = upgrade_weak!(app_weak);
+        // Here we build the application menu, which is application global
+        build_menu(&app, application);
+
+        // And then build the UI but don't show it yet
+        build_ui(&app, application);
+    });
+
+    let app_weak = app.downgrade();
+    application.connect_activate(move |_| {
+        let app = upgrade_weak!(app_weak);
+        let inner = app.0.borrow();
+        // We only show our window here once the application
+        // is activated. This means that when a second instance
+        // is started, the window of the first instance will be
+        // brought to the foreground
+        if let Some(ref main_window) = inner.main_window {
+            main_window.show_all();
+            main_window.present();
+        }
+    });
+
+    // This takes ownership of our App struct
+    let app = Some(app);
+    application.connect_shutdown(move |_| {
+        let _ = app;
     });
 
     application.run(&args().collect::<Vec<_>>());
