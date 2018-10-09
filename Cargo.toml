@@ -1,6 +1,8 @@
 [package]
 name = "workshop"
 version = "0.1.0"
-authors = ["Sebastian Dröge <sebastian@centricular.com>"]
+authors = ["Sebastian Dröge <sebastian@centricular.com>", "Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 
 [dependencies]
+gtk = "0.5"
+gio = "0.5"
