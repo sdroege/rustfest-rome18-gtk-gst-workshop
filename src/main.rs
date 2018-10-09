@@ -46,13 +46,28 @@ struct AppInner {
     main_window: Option<gtk::ApplicationWindow>,
 }
 
-fn build_menu(_app: &App, application: &gtk::Application) {
-    let menu = gio::Menu::new();
+fn build_ui(app: &App, application: &gtk::Application) {
+    let window = gtk::ApplicationWindow::new(application);
+    app.0.borrow_mut().main_window = Some(window.clone());
 
-    menu.append("Quit", "app.quit");
+    window.set_title("RustFest 2018 GTK+GStreamer");
+    window.set_border_width(5);
+    window.set_position(gtk::WindowPosition::Center);
+    window.set_default_size(350, 300);
 
-    let about_menu = gio::MenuItem::new("About", "app.about");
-    menu.append_item(&about_menu);
+    window.connect_delete_event(move |win, _| {
+        win.destroy();
+        Inhibit(false)
+    });
+
+    let header_bar = gtk::HeaderBar::new();
+    header_bar.set_show_close_button(true);
+    let main_menu = gtk::MenuButton::new();
+    let main_menu_image = gtk::Image::new_from_icon_name("open-menu-symbolic", 1);
+    main_menu.add(&main_menu_image);
+
+    let main_menu_model = gio::Menu::new();
+    main_menu_model.append("About", "win.about");
 
     // Connect the about menu entry click event.
     let about = gio::SimpleAction::new("about", None);
@@ -68,39 +83,18 @@ fn build_menu(_app: &App, application: &gtk::Application) {
         p.set_comments(Some("A webcam viewer written with gtk-rs and gstreamer-rs"));
         p.set_copyright(Some("This is under MIT license"));
         if let Some(window) = application.get_active_window() {
-            p.set_transient_for(Some(&window));
+            p.set_transient_for(&window);
         }
         p.set_modal(true);
         p.set_program_name("RustFest GTK+GStreamer");
         p.show_all();
     });
 
-    let quit = gio::SimpleAction::new("quit", None);
-    let weak_application = application.downgrade();
-    quit.connect_activate(move |_, _| {
-        let application = upgrade_weak!(weak_application);
-        application.quit();
-    });
+    window.add_action(&about);
+    main_menu.set_menu_model(&main_menu_model);
 
-    application.add_action(&about);
-    application.add_action(&quit);
-
-    application.set_app_menu(&menu);
-}
-
-fn build_ui(app: &App, application: &gtk::Application) {
-    let window = gtk::ApplicationWindow::new(application);
-    app.0.borrow_mut().main_window = Some(window.clone());
-
-    window.set_title("RustFest 2018 GTK+GStreamer");
-    window.set_border_width(5);
-    window.set_position(gtk::WindowPosition::Center);
-    window.set_default_size(350, 300);
-
-    window.connect_delete_event(move |win, _| {
-        win.destroy();
-        Inhibit(false)
-    });
+    header_bar.pack_end(&main_menu);
+    window.set_titlebar(&header_bar);
 
     let combo_box = gtk::ComboBoxText::new();
     combo_box.append_text("<Pick a video input>");
@@ -135,10 +129,7 @@ fn main() {
     let app_weak = app.downgrade();
     application.connect_startup(move |application| {
         let app = upgrade_weak!(app_weak);
-        // Here we build the application menu, which is application global
-        build_menu(&app, application);
-
-        // And then build the UI but don't show it yet
+        // Build the UI but don't show it yet
         build_ui(&app, application);
     });
 
