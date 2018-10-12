@@ -4,5 +4,8 @@ version = "0.1.0"
 authors = ["Sebastian Dröge <sebastian@centricular.com>", "Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 
 [dependencies]
-gtk = { version = "0.5", features = ["v3_10"] }
+glib = "0.6"
 gio = "0.5"
+gtk = { version = "0.5", features = ["v3_10"] }
+gstreamer = "0.12"
+fragile = "0.3"
