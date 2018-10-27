@@ -165,6 +165,63 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
     Ok((pipeline, widget))
 }
 
+fn save_screenshot(
+    file_chooser: &gtk::FileChooserWidget,
+    dialog: &gtk::Dialog,
+    options: &gtk::ComboBoxText,
+) {
+    // Normally, this check shouldn't be needed but better be safe than sorry.
+    if file_chooser.get_filename().is_none() {
+        return;
+    }
+    // TODO: save file in the given format.
+    // options.get_active_text();
+    dialog.destroy();
+}
+
+fn build_save_screenshot_window(parent: &gtk::ApplicationWindow) {
+    let dialog = gtk::Dialog::new_with_buttons(Some("Save screenshot"),
+                                               Some(parent),
+                                               gtk::DialogFlags::MODAL,
+                                               &[]);
+
+    let options = gtk::ComboBoxText::new();
+    options.append_text("BMP");
+    options.append_text("JPEG");
+    options.append_text("PNG");
+    options.set_active(0);
+
+    let save_button = gtk::Button::new_with_label("Save");
+    save_button.set_sensitive(false);
+
+    let file_chooser = gtk::FileChooserWidget::new(gtk::FileChooserAction::Save);
+
+    let content_area = dialog.get_content_area();
+    content_area.add(&file_chooser);
+    content_area.add(&options);
+    content_area.add(&save_button);
+
+    let dialog_weak = dialog.downgrade();
+    let options_weak = options.downgrade();
+    file_chooser.connect_file_activated(move |file_chooser| {
+        let dialog = upgrade_weak!(dialog_weak, ());
+        let options = upgrade_weak!(options_weak, ());
+        save_screenshot(file_chooser, &dialog, &options);
+    });
+    let dialog_weak = dialog.downgrade();
+    let file_chooser_weak = file_chooser.downgrade();
+    save_button.connect_clicked(move |_| {
+        let dialog = upgrade_weak!(dialog_weak, ());
+        let file_chooser = upgrade_weak!(file_chooser_weak, ());
+        save_screenshot(&file_chooser, &dialog, &options);
+    });
+    file_chooser.connect_selection_changed(move |file_chooser| {
+        save_button.set_sensitive(file_chooser.get_filename().is_some());
+    });
+
+    dialog.show_all();
+}
+
 fn build_ui(app: &App, application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
     app.0.borrow_mut().main_window = Some(window.clone());
@@ -197,7 +254,18 @@ fn build_ui(app: &App, application: &gtk::Application) {
     main_menu_model.append("About", "app.about");
     main_menu.set_menu_model(&main_menu_model);
 
+    let screenshot_button = gtk::Button::new();
+    let screenshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
+    screenshot_button.add(&screenshot_button_image);
+
+    let window_weak = window.downgrade();
+    screenshot_button.connect_clicked(move |_| {
+        let window = upgrade_weak!(window_weak, ());
+        build_save_screenshot_window(&window);
+    });
+
     header_bar.pack_end(&main_menu);
+    header_bar.pack_end(&screenshot_button);
     window.set_titlebar(&header_bar);
 
     // Create the pipeline and if that fails, shut down and
