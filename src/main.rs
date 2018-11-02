@@ -5,6 +5,10 @@ extern crate gtk;
 
 extern crate fragile;
 
+#[macro_use]
+extern crate serde;
+extern crate serde_any;
+
 use gio::prelude::*;
 use gio::MenuExt;
 use gtk::prelude::*;
@@ -15,7 +19,11 @@ use gst::BinExt;
 use std::cell::RefCell;
 use std::env::args;
 use std::error;
+use std::fs::create_dir_all;
+use std::path::PathBuf;
 use std::rc::{Rc, Weak};
+
+const APPLICATION_NAME: &'static str = "com.github.rustfest";
 
 macro_rules! upgrade_weak {
     ($x:ident, $r:expr) => {{
@@ -27,6 +35,79 @@ macro_rules! upgrade_weak {
     ($x:ident) => {
         upgrade_weak!($x, ())
     };
+}
+
+macro_rules! save_settings {
+    ($x:ident, $call:ident, $($to_downgrade:ident),* => move |$($p:tt),*| $body:expr) => {{
+        $( let $to_downgrade = $to_downgrade.downgrade(); )*
+        $x.$call(move |$($p),*| {
+            $( let $to_downgrade = upgrade_weak!($to_downgrade, ()); )*
+            $body
+        });
+    }}
+}
+
+fn get_settings_file_path() -> PathBuf {
+    let mut path = glib::get_user_config_dir().unwrap_or_else(|| PathBuf::from("."));
+    path.push(APPLICATION_NAME);
+    path.push("settings.toml");
+    path
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
+enum OutputFormat {
+    JPEG,
+    PNG,
+}
+
+impl<'a> From<&'a str> for OutputFormat {
+    fn from(s: &'a str) -> Self {
+        match s.to_lowercase().as_str() {
+            "jpeg" => OutputFormat::JPEG,
+            "png" => OutputFormat::PNG,
+            _ => panic!("unsupported output format"),
+        }
+    }
+}
+
+impl From<Option<String>> for OutputFormat {
+    fn from(s: Option<String>) -> Self {
+        if let Some(s) = s {
+            match s.to_lowercase().as_str() {
+                "jpeg" => OutputFormat::JPEG,
+                "png" => OutputFormat::PNG,
+                _ => panic!("unsupported output format"),
+            }
+        } else {
+            OutputFormat::default()
+        }
+    }
+}
+
+impl Default for OutputFormat {
+    fn default() -> Self {
+        OutputFormat::JPEG
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct SnapshotSettings {
+    /// By default, the current one.
+    folder: PathBuf,
+    /// Format in which to save the snapshot.
+    format: OutputFormat,
+    /// Timer length in seconds.
+    timer_length: usize,
+}
+
+impl Default for SnapshotSettings {
+    fn default() -> SnapshotSettings {
+        SnapshotSettings {
+            folder: glib::get_home_dir().unwrap_or_else(|| PathBuf::from(".")),
+            format: OutputFormat::default(),
+            timer_length: 3,
+        }
+    }
 }
 
 // Our refcounted application struct for containing all the
@@ -69,7 +150,18 @@ fn build_actions(_app: &App, application: &gtk::Application) {
     //
     // This can be activated from anywhere where we have access
     // to the application, not just the main window
+    let settings = gio::SimpleAction::new("settings", None);
     let about = gio::SimpleAction::new("about", None);
+
+    // When activated, show an about dialog
+    let weak_application = application.downgrade();
+    settings.connect_activate(move |_action, _parameter| {
+        let application = upgrade_weak!(weak_application);
+
+        if let Some(window) = application.get_active_window() {
+            build_snapshot_settings_window(&window);
+        }
+    });
 
     // When activated, show an about dialog
     let weak_application = application.downgrade();
@@ -101,6 +193,7 @@ fn build_actions(_app: &App, application: &gtk::Application) {
         p.show_all();
     });
 
+    application.add_action(&settings);
     application.add_action(&about);
 }
 
@@ -165,6 +258,146 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
     Ok((pipeline, widget))
 }
 
+fn save_settings(
+    folder_button: &gtk::FileChooserButton,
+    options: &gtk::ComboBoxText,
+    timer_entry: &gtk::SpinButton,
+) {
+    let settings = SnapshotSettings {
+        folder: PathBuf::from(folder_button.get_filename()
+                                           .unwrap_or_else(|| {
+                                               glib::get_home_dir().unwrap_or_else(|| {
+                                                   PathBuf::from(".")
+                                               })
+                                           })),
+        format: OutputFormat::from(options.get_active_text()),
+        timer_length: timer_entry.get_value_as_int() as _,
+    };
+    let s = get_settings_file_path();
+    if let Err(e) = serde_any::to_file(&s, &settings) {
+        eprintln!("Error when trying to save file: {:?}", e);
+    } else {
+        println!("Saved settings {:?} in '{}'", settings, s.display());
+    }
+}
+
+fn build_snapshot_settings_window(parent: &gtk::Window) {
+    let s = get_settings_file_path();
+
+    if !s.exists() {
+        if let Some(parent) = s.parent() {
+            if !parent.exists() {
+                if let Err(e) = create_dir_all(parent) {
+                    eprintln!("Error when trying to build settings folder '{}': {:?}",
+                              parent.display(),
+                              e);
+                }
+            }
+        }
+    }
+
+    let settings = if s.exists() && s.is_file() {
+        match serde_any::from_file::<SnapshotSettings, _>(&s) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error when opening '{}': {:?}", s.display(), e);
+                SnapshotSettings::default()
+            }
+        }
+    } else {
+        SnapshotSettings::default()
+    };
+
+    //
+    // BUILDING UI
+    //
+    let dialog = gtk::Dialog::new_with_buttons(Some("Snapshot settings"),
+                                               Some(parent),
+                                               gtk::DialogFlags::MODAL,
+                                               &[("Close", gtk::ResponseType::Close.into())]);
+
+    let grid = gtk::Grid::new();
+    grid.set_column_spacing(4);
+    grid.set_row_spacing(4);
+    grid.set_margin_bottom(10);
+
+    //
+    // OUTPUT FOLDER
+    //
+    let folder_label = gtk::Label::new("Output folder");
+    let folder_chooser_but = gtk::FileChooserButton::new("Pick a directory to save snapshots",
+                                                         gtk::FileChooserAction::SelectFolder);
+
+    folder_label.set_halign(gtk::Align::Start);
+    folder_chooser_but.set_filename(settings.folder);
+
+    grid.attach(&folder_label, 0, 0, 1, 1);
+    grid.attach(&folder_chooser_but, 1, 0, 3, 1);
+
+    //
+    // OUTPUT FORMAT OPTIONS
+    //
+    let format_label = gtk::Label::new("Output format");
+    let options = gtk::ComboBoxText::new();
+
+    format_label.set_halign(gtk::Align::Start);
+
+    options.append_text("JPEG");
+    options.append_text("PNG");
+    options.set_active(match settings.format {
+        OutputFormat::JPEG => 0,
+        OutputFormat::PNG => 1,
+    });
+    options.set_hexpand(true);
+
+    grid.attach(&format_label, 0, 1, 1, 1);
+    grid.attach(&options, 1, 1, 3, 1);
+
+    //
+    // TIMER LENGTH
+    //
+    let timer_label = gtk::Label::new("Timer length (in seconds)");
+    let timer_entry = gtk::SpinButton::new_with_range(0., 15., 1.);
+
+    timer_label.set_halign(gtk::Align::Start);
+    timer_label.set_hexpand(true);
+
+    timer_entry.set_value(settings.timer_length as f64);
+
+    grid.attach(&timer_label, 0, 2, 1, 1);
+    grid.attach(&timer_entry, 1, 2, 3, 1);
+
+    //
+    // PUTTING WIDGETS INTO DIALOG
+    //
+    let content_area = dialog.get_content_area();
+    content_area.pack_start(&grid, true, true, 0);
+    content_area.set_border_width(10);
+
+    //
+    // ADDING SETTINGS "AUTOMATIC" SAVE
+    //
+    save_settings!(timer_entry, connect_value_changed, folder_chooser_but, options =>
+                   move |timer_entry| {
+        save_settings(&folder_chooser_but, &options, &timer_entry);
+    });
+    save_settings!(options, connect_changed, folder_chooser_but, timer_entry =>
+                   move |options| {
+        save_settings(&folder_chooser_but, &options, &timer_entry);
+    });
+    save_settings!(folder_chooser_but, connect_file_set, timer_entry, options =>
+                   move |folder_chooser_but| {
+        save_settings(&folder_chooser_but, &options, &timer_entry);
+    });
+
+    dialog.connect_response(|dialog, _| {
+        dialog.destroy();
+    });
+
+    dialog.set_resizable(false);
+    dialog.show_all();
+}
+
 fn build_ui(app: &App, application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
     app.0.borrow_mut().main_window = Some(window.clone());
@@ -194,10 +427,20 @@ fn build_ui(app: &App, application: &gtk::Application) {
 
     // For now the main menu only contains the about dialog
     let main_menu_model = gio::Menu::new();
+    main_menu_model.append("Settings", "app.settings");
     main_menu_model.append("About", "app.about");
     main_menu.set_menu_model(&main_menu_model);
 
+    let snapshot_button = gtk::Button::new();
+    let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
+    snapshot_button.add(&snapshot_button_image);
+
+    snapshot_button.connect_clicked(move |_| {
+        // TODO: call gstreamer snapshot
+    });
+
     header_bar.pack_end(&main_menu);
+    header_bar.pack_end(&snapshot_button);
     window.set_titlebar(&header_bar);
 
     // Create the pipeline and if that fails, shut down and
@@ -224,7 +467,7 @@ fn build_ui(app: &App, application: &gtk::Application) {
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     gst::init()?;
-    let application = gtk::Application::new("com.github.rustfest", gio::ApplicationFlags::empty())?;
+    let application = gtk::Application::new(APPLICATION_NAME, gio::ApplicationFlags::empty())?;
 
     let app = App::new(&application);
 
@@ -234,6 +477,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     application.connect_startup(move |application| {
         let app = upgrade_weak!(app_weak);
         build_actions(&app, application);
+
         // Build the UI but don't show it yet
         build_ui(&app, application);
     });
