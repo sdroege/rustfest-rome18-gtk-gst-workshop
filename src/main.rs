@@ -264,12 +264,11 @@ fn save_settings(
     timer_entry: &gtk::SpinButton,
 ) {
     let settings = SnapshotSettings {
-        folder: PathBuf::from(folder_button.get_filename()
-                                           .unwrap_or_else(|| {
-                                               glib::get_home_dir().unwrap_or_else(|| {
-                                                   PathBuf::from(".")
-                                               })
-                                           })),
+        folder: PathBuf::from(
+            folder_button
+                .get_filename()
+                .unwrap_or_else(|| glib::get_home_dir().unwrap_or_else(|| PathBuf::from("."))),
+        ),
         format: OutputFormat::from(options.get_active_text()),
         timer_length: timer_entry.get_value_as_int() as _,
     };
@@ -288,9 +287,11 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
         if let Some(parent) = s.parent() {
             if !parent.exists() {
                 if let Err(e) = create_dir_all(parent) {
-                    eprintln!("Error when trying to build settings folder '{}': {:?}",
-                              parent.display(),
-                              e);
+                    eprintln!(
+                        "Error when trying to build settings folder '{}': {:?}",
+                        parent.display(),
+                        e
+                    );
                 }
             }
         }
@@ -311,10 +312,12 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     //
     // BUILDING UI
     //
-    let dialog = gtk::Dialog::new_with_buttons(Some("Snapshot settings"),
-                                               Some(parent),
-                                               gtk::DialogFlags::MODAL,
-                                               &[("Close", gtk::ResponseType::Close.into())]);
+    let dialog = gtk::Dialog::new_with_buttons(
+        Some("Snapshot settings"),
+        Some(parent),
+        gtk::DialogFlags::MODAL,
+        &[("Close", gtk::ResponseType::Close.into())],
+    );
 
     let grid = gtk::Grid::new();
     grid.set_column_spacing(4);
@@ -325,8 +328,10 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     // OUTPUT FOLDER
     //
     let folder_label = gtk::Label::new("Output folder");
-    let folder_chooser_but = gtk::FileChooserButton::new("Pick a directory to save snapshots",
-                                                         gtk::FileChooserAction::SelectFolder);
+    let folder_chooser_but = gtk::FileChooserButton::new(
+        "Pick a directory to save snapshots",
+        gtk::FileChooserAction::SelectFolder,
+    );
 
     folder_label.set_halign(gtk::Align::Start);
     folder_chooser_but.set_filename(settings.folder);
