@@ -280,6 +280,21 @@ fn save_settings(
     }
 }
 
+fn load_settings() -> SnapshotSettings {
+    let s = get_settings_file_path();
+    if s.exists() && s.is_file() {
+        match serde_any::from_file::<SnapshotSettings, _>(&s) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error when opening '{}': {:?}", s.display(), e);
+                SnapshotSettings::default()
+            }
+        }
+    } else {
+        SnapshotSettings::default()
+    }
+}
+
 fn build_snapshot_settings_window(parent: &gtk::Window) {
     let s = get_settings_file_path();
 
@@ -297,17 +312,7 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
         }
     }
 
-    let settings = if s.exists() && s.is_file() {
-        match serde_any::from_file::<SnapshotSettings, _>(&s) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("Error when opening '{}': {:?}", s.display(), e);
-                SnapshotSettings::default()
-            }
-        }
-    } else {
-        SnapshotSettings::default()
-    };
+    let settings = load_settings();
 
     //
     // BUILDING UI
@@ -403,6 +408,10 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     dialog.show_all();
 }
 
+fn take_snapshot() {
+    println!("tadam!");
+}
+
 fn build_ui(app: &App, application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
     app.0.borrow_mut().main_window = Some(window.clone());
@@ -412,6 +421,7 @@ fn build_ui(app: &App, application: &gtk::Application) {
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(350, 300);
 
+    let timeout: Rc<RefCell<Option<glib::source::SourceId>>> = Rc::new(RefCell::new(None));
     // When our main window is closed, the whole application should be
     // shut down
     let application_weak = application.downgrade();
@@ -436,12 +446,63 @@ fn build_ui(app: &App, application: &gtk::Application) {
     main_menu_model.append("About", "app.about");
     main_menu.set_menu_model(&main_menu_model);
 
+    let overlay = gtk::Overlay::new();
+    let overlay_text = gtk::Label::new("0");
+
+    overlay.add_overlay(&overlay_text);
+    overlay_text.set_halign(gtk::Align::End);
+    overlay_text.set_valign(gtk::Align::Start);
+    if let Some(style) = overlay_text.get_style_context() {
+        let css_provider = gtk::CssProvider::new();
+        css_provider.load_from_data("GtkLabel {
+            background-color: #fff;
+            border: 1px solid black;
+            border-radius: 2px;
+            color: black;
+        }".as_bytes()).expect("load_from_data failed");
+        style.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+    }
+    overlay_text.set_no_show_all(true);
+    overlay_text.set_visible(false);
+
     let snapshot_button = gtk::Button::new();
     let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
     snapshot_button.add(&snapshot_button_image);
 
     snapshot_button.connect_clicked(move |_| {
-        // TODO: call gstreamer snapshot
+        let settings = load_settings();
+
+        if let Some(t) = timeout.borrow_mut().take() {
+            glib::source::source_remove(t);
+            overlay_text.set_visible(false);
+            return
+        }
+        if settings.timer_length == 0 {
+            take_snapshot();
+        } else {
+            overlay_text.set_visible(true);
+            overlay_text.set_text(&settings.timer_length.to_string());
+
+            let overlay_text_weak = overlay_text.downgrade();
+            let timeout_weak = Rc::downgrade(&timeout);
+            let source = gtk::timeout_add_seconds(1, move || {
+                let timeout = upgrade_weak!(timeout_weak, glib::Continue(false));
+                let overlay_text = upgrade_weak!(overlay_text_weak, glib::Continue(false));
+                let remaining = u32::from_str_radix(&overlay_text.get_text()
+                                                                 .unwrap_or_else(|| "1".to_owned()),
+                                                    10).unwrap_or_else(|_| 1);
+                if remaining < 2 {
+                    overlay_text.set_visible(false);
+                    take_snapshot();
+                    *timeout.borrow_mut() = None;
+                    glib::Continue(false)
+                } else {
+                    overlay_text.set_text(&(remaining - 1).to_string());
+                    glib::Continue(true)
+                }
+            });
+            *timeout.borrow_mut() = Some(source);
+        }
     });
 
     header_bar.pack_end(&main_menu);
@@ -467,7 +528,9 @@ fn build_ui(app: &App, application: &gtk::Application) {
     // vertically or horizontally
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
     vbox.pack_start(&view, true, true, 0);
-    window.add(&vbox);
+
+    overlay.add(&vbox);
+    window.add(&overlay);
 }
 
 fn main() -> Result<(), Box<dyn error::Error>> {
