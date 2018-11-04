@@ -97,7 +97,7 @@ struct SnapshotSettings {
     /// Format in which to save the snapshot.
     format: OutputFormat,
     /// Timer length in seconds.
-    timer_length: usize,
+    timer_length: u32,
 }
 
 impl Default for SnapshotSettings {
@@ -124,6 +124,8 @@ impl App {
             main_window: None,
             pipeline: None,
             error: None,
+            timeout: None,
+            remaining_secs_before_snapshot: 0,
         })))
     }
 
@@ -143,6 +145,8 @@ struct AppInner {
     main_window: Option<gtk::ApplicationWindow>,
     pipeline: Option<gst::Pipeline>,
     error: Option<Box<dyn error::Error>>,
+    timeout: Option<glib::source::SourceId>,
+    remaining_secs_before_snapshot: u32,
 }
 
 fn build_actions(_app: &App, application: &gtk::Application) {
@@ -421,7 +425,6 @@ fn build_ui(app: &App, application: &gtk::Application) {
     window.set_position(gtk::WindowPosition::Center);
     window.set_default_size(350, 300);
 
-    let timeout: Rc<RefCell<Option<glib::source::SourceId>>> = Rc::new(RefCell::new(None));
     // When our main window is closed, the whole application should be
     // shut down
     let application_weak = application.downgrade();
@@ -469,10 +472,12 @@ fn build_ui(app: &App, application: &gtk::Application) {
     let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
     snapshot_button.add(&snapshot_button_image);
 
+    let app_weak = Rc::downgrade(&app.0);
     snapshot_button.connect_clicked(move |_| {
+        let app = upgrade_weak!(app_weak, ());
         let settings = load_settings();
 
-        if let Some(t) = timeout.borrow_mut().take() {
+        if let Some(t) = app.borrow_mut().timeout.take() {
             glib::source::source_remove(t);
             overlay_text.set_visible(false);
             return
@@ -483,25 +488,27 @@ fn build_ui(app: &App, application: &gtk::Application) {
             overlay_text.set_visible(true);
             overlay_text.set_text(&settings.timer_length.to_string());
 
+            app.borrow_mut().remaining_secs_before_snapshot = settings.timer_length;
+
             let overlay_text_weak = overlay_text.downgrade();
-            let timeout_weak = Rc::downgrade(&timeout);
+            let app_weak = Rc::downgrade(&app);
             let source = gtk::timeout_add_seconds(1, move || {
-                let timeout = upgrade_weak!(timeout_weak, glib::Continue(false));
+                let app = upgrade_weak!(app_weak, glib::Continue(false));
                 let overlay_text = upgrade_weak!(overlay_text_weak, glib::Continue(false));
-                let remaining = u32::from_str_radix(&overlay_text.get_text()
-                                                                 .unwrap_or_else(|| "1".to_owned()),
-                                                    10).unwrap_or_else(|_| 1);
+                let remaining = app.borrow().remaining_secs_before_snapshot;
+
                 if remaining < 2 {
                     overlay_text.set_visible(false);
                     take_snapshot();
-                    *timeout.borrow_mut() = None;
+                    app.borrow_mut().timeout = None;
                     glib::Continue(false)
                 } else {
                     overlay_text.set_text(&(remaining - 1).to_string());
+                    app.borrow_mut().remaining_secs_before_snapshot -= 1;
                     glib::Continue(true)
                 }
             });
-            *timeout.borrow_mut() = Some(source);
+            app.borrow_mut().timeout = Some(source);
         }
     });
 
