@@ -1,3 +1,4 @@
+extern crate gdk;
 extern crate gio;
 extern crate glib;
 extern crate gstreamer as gst;
@@ -452,35 +453,23 @@ fn build_ui(app: &App, application: &gtk::Application) {
     // Create an overlay for showing the seconds until a snapshot
     // This is hidden while we're not doing a countdown
     let overlay = gtk::Overlay::new();
+
     let overlay_text = gtk::Label::new("0");
+    gtk::WidgetExt::set_name(&overlay_text, "countdown-label");
 
     overlay.add_overlay(&overlay_text);
-    overlay_text.set_halign(gtk::Align::End);
-    overlay_text.set_valign(gtk::Align::Start);
-    if let Some(style) = overlay_text.get_style_context() {
-        let css_provider = gtk::CssProvider::new();
-        css_provider
-            .load_from_data(
-                "GtkLabel {
-            background-color: #fff;
-            border: 1px solid black;
-            border-radius: 2px;
-            color: black;
-        }"
-                .as_bytes(),
-            )
-            .expect("load_from_data failed");
-        style.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
-    }
+    overlay_text.set_halign(gtk::Align::Center);
+    overlay_text.set_valign(gtk::Align::Center);
+    overlay_text.set_width_chars(3);
     overlay_text.set_no_show_all(true);
     overlay_text.set_visible(false);
 
-    let snapshot_button = gtk::Button::new();
+    let snapshot_button = gtk::ToggleButton::new();
     let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
     snapshot_button.add(&snapshot_button_image);
 
     let app_weak = Rc::downgrade(&app.0);
-    snapshot_button.connect_clicked(move |_| {
+    snapshot_button.connect_clicked(move |snapshot_button| {
         let app = upgrade_weak!(app_weak);
         let settings = load_settings();
 
@@ -496,6 +485,11 @@ fn build_ui(app: &App, application: &gtk::Application) {
         // Otherwise take a snapshot immediately if there's
         // no timer length or start the timer
         if settings.timer_length == 0 {
+            // Set the togglebutton unchecked again
+            snapshot_button.set_state_flags(
+                snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
+                true,
+            );
             take_snapshot();
         } else {
             overlay_text.set_visible(true);
@@ -504,21 +498,29 @@ fn build_ui(app: &App, application: &gtk::Application) {
             inner.remaining_secs_before_snapshot = settings.timer_length;
 
             let overlay_text_weak = overlay_text.downgrade();
+            let snapshot_button_weak = snapshot_button.downgrade();
             let app_weak = Rc::downgrade(&app);
-            let source = gtk::timeout_add_seconds(1, move || {
+            let source = gtk::timeout_add(1000, move || {
                 let app = upgrade_weak!(app_weak, glib::Continue(false));
+                let snapshot_button = upgrade_weak!(snapshot_button_weak, glib::Continue(false));
                 let overlay_text = upgrade_weak!(overlay_text_weak, glib::Continue(false));
 
                 let mut inner = app.borrow_mut();
 
-                if inner.remaining_secs_before_snapshot < 2 {
+                inner.remaining_secs_before_snapshot -= 1;
+                if inner.remaining_secs_before_snapshot == 0 {
+                    // Set the togglebutton unchecked again and make
+                    // the overlay text invisible
                     overlay_text.set_visible(false);
+                    snapshot_button.set_state_flags(
+                        snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
+                        true,
+                    );
                     take_snapshot();
                     inner.timeout = None;
                     glib::Continue(false)
                 } else {
-                    overlay_text.set_text(&(inner.remaining_secs_before_snapshot - 1).to_string());
-                    inner.remaining_secs_before_snapshot -= 1;
+                    overlay_text.set_text(&inner.remaining_secs_before_snapshot.to_string());
                     glib::Continue(true)
                 }
             });
@@ -554,6 +556,15 @@ fn build_ui(app: &App, application: &gtk::Application) {
     window.add(&overlay);
 }
 
+// Here we specify our custom, application specific CSS styles for various widgets
+const STYLE: &'static str = "
+#countdown-label {
+    background-color: rgba(192, 192, 192, 0.8);
+    color: black;
+    font-size: 42pt;
+    font-weight: bold;
+}";
+
 fn main() -> Result<(), Box<dyn error::Error>> {
     gst::init()?;
     let application = gtk::Application::new(APPLICATION_NAME, gio::ApplicationFlags::empty())?;
@@ -565,6 +576,18 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let app_weak = app.downgrade();
     application.connect_startup(move |application| {
         let app = upgrade_weak!(app_weak);
+
+        // Load custom CSS style-sheet
+        let provider = gtk::CssProvider::new();
+        provider
+            .load_from_data(STYLE.as_bytes())
+            .expect("Failed to load CSS");
+        gtk::StyleContext::add_provider_for_screen(
+            &gdk::Screen::get_default().expect("Error initializing gtk css provider."),
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+
         build_actions(&app, application);
 
         // Build the UI but don't show it yet
