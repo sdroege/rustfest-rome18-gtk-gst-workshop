@@ -6,6 +6,7 @@ authors = ["Sebastian Dröge <sebastian@centricular.com>", "Guillaume Gomez <gui
 [dependencies]
 glib = "0.6"
 gio = "0.5"
+gdk = "0.9"
 gtk = { version = "0.5", features = ["v3_10"] }
 gstreamer = "0.12"
 fragile = "0.3"
