@@ -449,6 +449,8 @@ fn build_ui(app: &App, application: &gtk::Application) {
     main_menu_model.append("About", "app.about");
     main_menu.set_menu_model(&main_menu_model);
 
+    // Create an overlay for showing the seconds until a snapshot
+    // This is hidden while we're not doing a countdown
     let overlay = gtk::Overlay::new();
     let overlay_text = gtk::Label::new("0");
 
@@ -457,12 +459,17 @@ fn build_ui(app: &App, application: &gtk::Application) {
     overlay_text.set_valign(gtk::Align::Start);
     if let Some(style) = overlay_text.get_style_context() {
         let css_provider = gtk::CssProvider::new();
-        css_provider.load_from_data("GtkLabel {
+        css_provider
+            .load_from_data(
+                "GtkLabel {
             background-color: #fff;
             border: 1px solid black;
             border-radius: 2px;
             color: black;
-        }".as_bytes()).expect("load_from_data failed");
+        }"
+                .as_bytes(),
+            )
+            .expect("load_from_data failed");
         style.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
     }
     overlay_text.set_no_show_all(true);
@@ -474,41 +481,48 @@ fn build_ui(app: &App, application: &gtk::Application) {
 
     let app_weak = Rc::downgrade(&app.0);
     snapshot_button.connect_clicked(move |_| {
-        let app = upgrade_weak!(app_weak, ());
+        let app = upgrade_weak!(app_weak);
         let settings = load_settings();
 
-        if let Some(t) = app.borrow_mut().timeout.take() {
+        let mut inner = app.borrow_mut();
+
+        // If we're currently doing a countdown, cancel it
+        if let Some(t) = inner.timeout.take() {
             glib::source::source_remove(t);
             overlay_text.set_visible(false);
-            return
+            return;
         }
+
+        // Otherwise take a snapshot immediately if there's
+        // no timer length or start the timer
         if settings.timer_length == 0 {
             take_snapshot();
         } else {
             overlay_text.set_visible(true);
             overlay_text.set_text(&settings.timer_length.to_string());
 
-            app.borrow_mut().remaining_secs_before_snapshot = settings.timer_length;
+            inner.remaining_secs_before_snapshot = settings.timer_length;
 
             let overlay_text_weak = overlay_text.downgrade();
             let app_weak = Rc::downgrade(&app);
             let source = gtk::timeout_add_seconds(1, move || {
                 let app = upgrade_weak!(app_weak, glib::Continue(false));
                 let overlay_text = upgrade_weak!(overlay_text_weak, glib::Continue(false));
-                let remaining = app.borrow().remaining_secs_before_snapshot;
 
-                if remaining < 2 {
+                let mut inner = app.borrow_mut();
+
+                if inner.remaining_secs_before_snapshot < 2 {
                     overlay_text.set_visible(false);
                     take_snapshot();
-                    app.borrow_mut().timeout = None;
+                    inner.timeout = None;
                     glib::Continue(false)
                 } else {
-                    overlay_text.set_text(&(remaining - 1).to_string());
-                    app.borrow_mut().remaining_secs_before_snapshot -= 1;
+                    overlay_text.set_text(&(inner.remaining_secs_before_snapshot - 1).to_string());
+                    inner.remaining_secs_before_snapshot -= 1;
                     glib::Continue(true)
                 }
             });
-            app.borrow_mut().timeout = Some(source);
+            inner.timeout = Some(source);
         }
     });
 
