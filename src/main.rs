@@ -268,12 +268,11 @@ fn save_settings(
     timer_entry: &gtk::SpinButton,
 ) {
     let settings = SnapshotSettings {
-        folder: PathBuf::from(folder_button.get_filename()
-                                           .unwrap_or_else(|| {
-                                               glib::get_home_dir().unwrap_or_else(|| {
-                                                   PathBuf::from(".")
-                                               })
-                                           })),
+        folder: PathBuf::from(
+            folder_button
+                .get_filename()
+                .unwrap_or_else(|| glib::get_home_dir().unwrap_or_else(|| PathBuf::from("."))),
+        ),
         format: OutputFormat::from(options.get_active_text()),
         timer_length: timer_entry.get_value_as_int() as _,
     };
@@ -307,9 +306,11 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
         if let Some(parent) = s.parent() {
             if !parent.exists() {
                 if let Err(e) = create_dir_all(parent) {
-                    eprintln!("Error when trying to build settings folder '{}': {:?}",
-                              parent.display(),
-                              e);
+                    eprintln!(
+                        "Error when trying to build settings folder '{}': {:?}",
+                        parent.display(),
+                        e
+                    );
                 }
             }
         }
@@ -320,10 +321,12 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     //
     // BUILDING UI
     //
-    let dialog = gtk::Dialog::new_with_buttons(Some("Snapshot settings"),
-                                               Some(parent),
-                                               gtk::DialogFlags::MODAL,
-                                               &[("Close", gtk::ResponseType::Close.into())]);
+    let dialog = gtk::Dialog::new_with_buttons(
+        Some("Snapshot settings"),
+        Some(parent),
+        gtk::DialogFlags::MODAL,
+        &[("Close", gtk::ResponseType::Close.into())],
+    );
 
     let grid = gtk::Grid::new();
     grid.set_column_spacing(4);
@@ -334,8 +337,10 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     // OUTPUT FOLDER
     //
     let folder_label = gtk::Label::new("Output folder");
-    let folder_chooser_but = gtk::FileChooserButton::new("Pick a directory to save snapshots",
-                                                         gtk::FileChooserAction::SelectFolder);
+    let folder_chooser_but = gtk::FileChooserButton::new(
+        "Pick a directory to save snapshots",
+        gtk::FileChooserAction::SelectFolder,
+    );
 
     folder_label.set_halign(gtk::Align::Start);
     folder_chooser_but.set_filename(settings.folder);
@@ -444,6 +449,8 @@ fn build_ui(app: &App, application: &gtk::Application) {
     main_menu_model.append("About", "app.about");
     main_menu.set_menu_model(&main_menu_model);
 
+    // Create an overlay for showing the seconds until a snapshot
+    // This is hidden while we're not doing a countdown
     let overlay = gtk::Overlay::new();
     let overlay_text = gtk::Label::new("0");
 
@@ -452,12 +459,17 @@ fn build_ui(app: &App, application: &gtk::Application) {
     overlay_text.set_valign(gtk::Align::Start);
     if let Some(style) = overlay_text.get_style_context() {
         let css_provider = gtk::CssProvider::new();
-        css_provider.load_from_data("GtkLabel {
+        css_provider
+            .load_from_data(
+                "GtkLabel {
             background-color: #fff;
             border: 1px solid black;
             border-radius: 2px;
             color: black;
-        }".as_bytes()).expect("load_from_data failed");
+        }"
+                .as_bytes(),
+            )
+            .expect("load_from_data failed");
         style.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
     }
     overlay_text.set_no_show_all(true);
@@ -469,41 +481,48 @@ fn build_ui(app: &App, application: &gtk::Application) {
 
     let app_weak = Rc::downgrade(&app.0);
     snapshot_button.connect_clicked(move |_| {
-        let app = upgrade_weak!(app_weak, ());
+        let app = upgrade_weak!(app_weak);
         let settings = load_settings();
 
-        if let Some(t) = app.borrow_mut().timeout.take() {
+        let mut inner = app.borrow_mut();
+
+        // If we're currently doing a countdown, cancel it
+        if let Some(t) = inner.timeout.take() {
             glib::source::source_remove(t);
             overlay_text.set_visible(false);
-            return
+            return;
         }
+
+        // Otherwise take a snapshot immediately if there's
+        // no timer length or start the timer
         if settings.timer_length == 0 {
             take_snapshot();
         } else {
             overlay_text.set_visible(true);
             overlay_text.set_text(&settings.timer_length.to_string());
 
-            app.borrow_mut().remaining_secs_before_snapshot = settings.timer_length;
+            inner.remaining_secs_before_snapshot = settings.timer_length;
 
             let overlay_text_weak = overlay_text.downgrade();
             let app_weak = Rc::downgrade(&app);
             let source = gtk::timeout_add_seconds(1, move || {
                 let app = upgrade_weak!(app_weak, glib::Continue(false));
                 let overlay_text = upgrade_weak!(overlay_text_weak, glib::Continue(false));
-                let remaining = app.borrow().remaining_secs_before_snapshot;
 
-                if remaining < 2 {
+                let mut inner = app.borrow_mut();
+
+                if inner.remaining_secs_before_snapshot < 2 {
                     overlay_text.set_visible(false);
                     take_snapshot();
-                    app.borrow_mut().timeout = None;
+                    inner.timeout = None;
                     glib::Continue(false)
                 } else {
-                    overlay_text.set_text(&(remaining - 1).to_string());
-                    app.borrow_mut().remaining_secs_before_snapshot -= 1;
+                    overlay_text.set_text(&(inner.remaining_secs_before_snapshot - 1).to_string());
+                    inner.remaining_secs_before_snapshot -= 1;
                     glib::Continue(true)
                 }
             });
-            app.borrow_mut().timeout = Some(source);
+            inner.timeout = Some(source);
         }
     });
 
