@@ -9,6 +9,8 @@ gio = "0.5"
 gdk = "0.9"
 gtk = { version = "0.5", features = ["v3_10"] }
 gstreamer = "0.12"
+gstreamer-video = "0.12"
 fragile = "0.3"
 serde = "^1"
 serde_any = "0.5"
+chrono = "0.4"

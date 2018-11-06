@@ -1,14 +1,19 @@
 extern crate gdk;
 extern crate gio;
 extern crate glib;
-extern crate gstreamer as gst;
 extern crate gtk;
+
+extern crate gstreamer as gst;
+extern crate gstreamer_video as gst_video;
 
 extern crate fragile;
 
 #[macro_use]
 extern crate serde;
 extern crate serde_any;
+
+extern crate chrono;
+use chrono::prelude::*;
 
 use gio::prelude::*;
 use gio::MenuExt;
@@ -20,7 +25,7 @@ use gst::BinExt;
 use std::cell::RefCell;
 use std::env::args;
 use std::error;
-use std::fs::create_dir_all;
+use std::fs::{create_dir_all, File};
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 
@@ -425,8 +430,73 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
 }
 
 // Take a snapshot of the current image and write it to the configured location
-fn take_snapshot() {
-    println!("tadam!");
+fn take_snapshot(pipeline: &gst::Pipeline) {
+    let settings = load_settings();
+
+    // Create the GStreamer caps for the output format
+    let (caps, extension) = match settings.format {
+        OutputFormat::JPEG => (gst::Caps::new_simple("image/jpeg", &[]), "jpg"),
+        OutputFormat::PNG => (gst::Caps::new_simple("image/png", &[]), "png"),
+    };
+
+    let sink = pipeline.get_by_name("sink").expect("sink not found");
+    let last_sample = sink.get_property("last-sample").unwrap();
+    let last_sample = match last_sample.get::<gst::Sample>() {
+        None => {
+            // We have no sample to store yet
+            return;
+        }
+        Some(sample) => sample,
+    };
+
+    // Create the filename and open the file writable
+    let mut filename = settings.folder.clone();
+    let now = Local::now();
+    filename.push(format!(
+        "{}.{}",
+        now.format("Snapshot %Y-%m-%d %H:%M:%S"),
+        extension
+    ));
+
+    let mut file = match File::create(&filename) {
+        Err(err) => {
+            eprintln!(
+                "Failed to create snapshot file {}: {}",
+                filename.display(),
+                err
+            );
+            return;
+        }
+        Ok(file) => file,
+    };
+
+    // Then convert it from whatever format we got to PNG or JPEG as requested
+    // and write it out
+    println!("Writing snapshot to {}", filename.display());
+    gst_video::convert_sample_async(&last_sample, &caps, 5 * gst::SECOND, move |res| {
+        use std::io::Write;
+
+        let sample = match res {
+            Err(err) => {
+                eprintln!("Failed to convert sample: {}", err);
+                return;
+            }
+            Ok(sample) => sample,
+        };
+
+        let buffer = sample.get_buffer().expect("Failed to get buffer");
+        let map = buffer
+            .map_readable()
+            .expect("Failed to map buffer readable");
+
+        if let Err(err) = file.write_all(&map) {
+            eprintln!(
+                "Failed to write snapshot file {}: {}",
+                filename.display(),
+                err
+            );
+        }
+    });
 }
 
 // When the snapshot button is clicked, we have to start the timer, stop the timer or directly
@@ -455,7 +525,10 @@ fn on_snapshot_button_clicked(
             snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
             true,
         );
-        take_snapshot();
+
+        if let Some(ref pipeline) = inner.pipeline {
+            take_snapshot(pipeline);
+        }
     } else {
         // Make the overlay visible, remember how much we have to count
         // down and start our timeout for the timer
@@ -483,7 +556,9 @@ fn on_snapshot_button_clicked(
                     snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
                     true,
                 );
-                take_snapshot();
+                if let Some(ref pipeline) = inner.pipeline {
+                    take_snapshot(pipeline);
+                }
                 inner.timeout = None;
             } else {
                 overlay_text.set_text(&inner.remaining_secs_before_snapshot.to_string());
