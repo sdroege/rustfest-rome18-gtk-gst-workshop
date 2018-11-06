@@ -93,18 +93,19 @@ impl Default for OutputFormat {
 
 #[derive(Deserialize, Serialize, Debug)]
 struct SnapshotSettings {
-    /// By default, the current one.
+    // By default, the user's picture directory.
     folder: PathBuf,
-    /// Format in which to save the snapshot.
+    // Format in which to save the snapshot.
     format: OutputFormat,
-    /// Timer length in seconds.
+    // Timer length in seconds.
     timer_length: u32,
 }
 
 impl Default for SnapshotSettings {
     fn default() -> SnapshotSettings {
         SnapshotSettings {
-            folder: glib::get_home_dir().unwrap_or_else(|| PathBuf::from(".")),
+            folder: glib::get_user_special_dir(glib::UserDirectory::Pictures)
+                .unwrap_or_else(|| PathBuf::from(".")),
             format: OutputFormat::default(),
             timer_length: 3,
         }
@@ -145,20 +146,24 @@ struct AppInner {
     application: gtk::Application,
     main_window: Option<gtk::ApplicationWindow>,
     pipeline: Option<gst::Pipeline>,
+
+    // Any error that happened during runtime and should be
+    // reported before the application quits
     error: Option<Box<dyn error::Error>>,
+
+    // Snapshot timer state
     timeout: Option<glib::source::SourceId>,
     remaining_secs_before_snapshot: u32,
 }
 
 fn build_actions(_app: &App, application: &gtk::Application) {
-    // Create app.about action for the about dialog
+    // Create actions for our settings and about dialogs
     //
     // This can be activated from anywhere where we have access
     // to the application, not just the main window
     let settings = gio::SimpleAction::new("settings", None);
-    let about = gio::SimpleAction::new("about", None);
 
-    // When activated, show an about dialog
+    // When activated, show a settings dialog
     let weak_application = application.downgrade();
     settings.connect_activate(move |_action, _parameter| {
         let application = upgrade_weak!(weak_application);
@@ -167,6 +172,8 @@ fn build_actions(_app: &App, application: &gtk::Application) {
             build_snapshot_settings_window(&window);
         }
     });
+
+    let about = gio::SimpleAction::new("about", None);
 
     // When activated, show an about dialog
     let weak_application = application.downgrade();
@@ -263,6 +270,7 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
     Ok((pipeline, widget))
 }
 
+// Save the current settings from the values of the various UI elements
 fn save_settings(
     folder_button: &gtk::FileChooserButton,
     options: &gtk::ComboBoxText,
@@ -285,6 +293,7 @@ fn save_settings(
     }
 }
 
+// Load the current settings
 fn load_settings() -> SnapshotSettings {
     let s = get_settings_file_path();
     if s.exists() && s.is_file() {
@@ -300,6 +309,8 @@ fn load_settings() -> SnapshotSettings {
     }
 }
 
+// Construct the snapshot settings dialog and ensure that
+// the settings file exists and is loaded
 fn build_snapshot_settings_window(parent: &gtk::Window) {
     let s = get_settings_file_path();
 
@@ -413,8 +424,78 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     dialog.show_all();
 }
 
+// Take a snapshot of the current image and write it to the configured location
 fn take_snapshot() {
     println!("tadam!");
+}
+
+// When the snapshot button is clicked, we have to start the timer, stop the timer or directly
+// snapshot
+fn on_snapshot_button_clicked(
+    app: &App,
+    snapshot_button: &gtk::ToggleButton,
+    overlay_text: &gtk::Label,
+) {
+    let settings = load_settings();
+
+    let mut inner = app.0.borrow_mut();
+
+    // If we're currently doing a countdown, cancel it
+    if let Some(t) = inner.timeout.take() {
+        glib::source::source_remove(t);
+        overlay_text.set_visible(false);
+        return;
+    }
+
+    // Otherwise take a snapshot immediately if there's
+    // no timer length or start the timer
+    if settings.timer_length == 0 {
+        // Set the togglebutton unchecked again
+        snapshot_button.set_state_flags(
+            snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
+            true,
+        );
+        take_snapshot();
+    } else {
+        // Make the overlay visible, remember how much we have to count
+        // down and start our timeout for the timer
+        overlay_text.set_visible(true);
+        overlay_text.set_text(&settings.timer_length.to_string());
+        inner.remaining_secs_before_snapshot = settings.timer_length;
+
+        let overlay_text_weak = overlay_text.downgrade();
+        let snapshot_button_weak = snapshot_button.downgrade();
+        let app_weak = app.downgrade();
+        // The closure is called every 1000ms
+        let source = gtk::timeout_add(1000, move || {
+            let app = upgrade_weak!(app_weak, glib::Continue(false));
+            let snapshot_button = upgrade_weak!(snapshot_button_weak, glib::Continue(false));
+            let overlay_text = upgrade_weak!(overlay_text_weak, glib::Continue(false));
+
+            let mut inner = app.0.borrow_mut();
+
+            inner.remaining_secs_before_snapshot -= 1;
+            if inner.remaining_secs_before_snapshot == 0 {
+                // Set the togglebutton unchecked again and make
+                // the overlay text invisible
+                overlay_text.set_visible(false);
+                snapshot_button.set_state_flags(
+                    snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
+                    true,
+                );
+                take_snapshot();
+                inner.timeout = None;
+            } else {
+                overlay_text.set_text(&inner.remaining_secs_before_snapshot.to_string());
+            }
+
+            // Continue the timeout as long as we didn't trigger yet, i.e.
+            // inner.timeout contains the timeout id
+            glib::Continue(inner.timeout.is_some())
+        });
+
+        inner.timeout = Some(source);
+    }
 }
 
 fn build_ui(app: &App, application: &gtk::Application) {
@@ -444,93 +525,48 @@ fn build_ui(app: &App, application: &gtk::Application) {
     let main_menu_image = gtk::Image::new_from_icon_name("open-menu-symbolic", 1);
     main_menu.add(&main_menu_image);
 
-    // For now the main menu only contains the about dialog
+    // For now the main menu only contains the settings and about dialog
     let main_menu_model = gio::Menu::new();
     main_menu_model.append("Settings", "app.settings");
     main_menu_model.append("About", "app.about");
     main_menu.set_menu_model(&main_menu_model);
+
+    let snapshot_button = gtk::ToggleButton::new();
+    let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
+    snapshot_button.add(&snapshot_button_image);
+
+    // Pack the snapshot button on the left, the main menu on
+    // the right of the header bar and set it on our window
+    header_bar.pack_start(&snapshot_button);
+    header_bar.pack_end(&main_menu);
+    window.set_titlebar(&header_bar);
 
     // Create an overlay for showing the seconds until a snapshot
     // This is hidden while we're not doing a countdown
     let overlay = gtk::Overlay::new();
 
     let overlay_text = gtk::Label::new("0");
+    // Our label should have the countdown-label style from the stylesheet
     gtk::WidgetExt::set_name(&overlay_text, "countdown-label");
 
-    overlay.add_overlay(&overlay_text);
+    // Center the label in the overlay and give it a width of 3 characters
+    // to always have the same width independent of the width of the current
+    // number
     overlay_text.set_halign(gtk::Align::Center);
     overlay_text.set_valign(gtk::Align::Center);
     overlay_text.set_width_chars(3);
     overlay_text.set_no_show_all(true);
     overlay_text.set_visible(false);
 
-    let snapshot_button = gtk::ToggleButton::new();
-    let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
-    snapshot_button.add(&snapshot_button_image);
+    overlay.add_overlay(&overlay_text);
 
-    let app_weak = Rc::downgrade(&app.0);
+    // When the snapshot button is clicked we need to start the
+    // countdown, stop the countdown or directly do a snapshot
+    let app_weak = app.downgrade();
     snapshot_button.connect_clicked(move |snapshot_button| {
         let app = upgrade_weak!(app_weak);
-        let settings = load_settings();
-
-        let mut inner = app.borrow_mut();
-
-        // If we're currently doing a countdown, cancel it
-        if let Some(t) = inner.timeout.take() {
-            glib::source::source_remove(t);
-            overlay_text.set_visible(false);
-            return;
-        }
-
-        // Otherwise take a snapshot immediately if there's
-        // no timer length or start the timer
-        if settings.timer_length == 0 {
-            // Set the togglebutton unchecked again
-            snapshot_button.set_state_flags(
-                snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
-                true,
-            );
-            take_snapshot();
-        } else {
-            overlay_text.set_visible(true);
-            overlay_text.set_text(&settings.timer_length.to_string());
-
-            inner.remaining_secs_before_snapshot = settings.timer_length;
-
-            let overlay_text_weak = overlay_text.downgrade();
-            let snapshot_button_weak = snapshot_button.downgrade();
-            let app_weak = Rc::downgrade(&app);
-            let source = gtk::timeout_add(1000, move || {
-                let app = upgrade_weak!(app_weak, glib::Continue(false));
-                let snapshot_button = upgrade_weak!(snapshot_button_weak, glib::Continue(false));
-                let overlay_text = upgrade_weak!(overlay_text_weak, glib::Continue(false));
-
-                let mut inner = app.borrow_mut();
-
-                inner.remaining_secs_before_snapshot -= 1;
-                if inner.remaining_secs_before_snapshot == 0 {
-                    // Set the togglebutton unchecked again and make
-                    // the overlay text invisible
-                    overlay_text.set_visible(false);
-                    snapshot_button.set_state_flags(
-                        snapshot_button.get_state_flags() & !gtk::StateFlags::CHECKED,
-                        true,
-                    );
-                    take_snapshot();
-                    inner.timeout = None;
-                    glib::Continue(false)
-                } else {
-                    overlay_text.set_text(&inner.remaining_secs_before_snapshot.to_string());
-                    glib::Continue(true)
-                }
-            });
-            inner.timeout = Some(source);
-        }
+        on_snapshot_button_clicked(&app, &snapshot_button, &overlay_text);
     });
-
-    header_bar.pack_end(&main_menu);
-    header_bar.pack_end(&snapshot_button);
-    window.set_titlebar(&header_bar);
 
     // Create the pipeline and if that fails, shut down and
     // remember the error that happened
@@ -577,7 +613,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     application.connect_startup(move |application| {
         let app = upgrade_weak!(app_weak);
 
-        // Load custom CSS style-sheet
+        // Load our custom CSS style-sheet and set it as the application
+        // specific style-sheet for this whole application
         let provider = gtk::CssProvider::new();
         provider
             .load_from_data(STYLE.as_bytes())
@@ -588,6 +625,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
 
+        // Create our UI actions
         build_actions(&app, application);
 
         // Build the UI but don't show it yet
@@ -644,6 +682,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     // And now run the application until the end
     application.run(&args().collect::<Vec<_>>());
 
+    // If an error happened some time during the application,
+    // return it here
     let mut app_inner = app.0.borrow_mut();
     if let Some(err) = app_inner.error.take() {
         Err(err)
