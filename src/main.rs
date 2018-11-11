@@ -312,10 +312,12 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
                 inner.application.quit();
             }
             MessageView::Element(msg) => {
-                // Catch the EOS messages from our filesink. Because the other sink,
-                // gtksink, will never receive EOS we will never get a normal EOS message
-                // from the bus. The normal EOS message would only be sent once *all*
-                // sinks had their EOS message posted.
+                // Catch the end-of-stream messages from our filesink. Because the other sink,
+                // gtksink, will never receive end-of-stream we will never get a normal
+                // end-of-stream message from the bus.
+                //
+                // The normal end-of-stream message would only be sent once *all*
+                // sinks had their end-of-stream message posted.
                 match msg.get_structure() {
                     Some(s) if s.get_name() == "GstBinForwarded" => {
                         let msg = s.get::<gst::Message>("message").unwrap();
@@ -336,6 +338,8 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
 
                             // And then asynchronously remove it and set its state to Null
                             pipeline.call_async(move |pipeline| {
+                                // Ignore if the bin was not in the pipeline anymore for whatever
+                                // reason. It's not a problem
                                 let _ = pipeline.remove(&bin);
 
                                 // TODO error dialog
@@ -796,6 +800,7 @@ fn on_record_button_clicked(app: &App, record_button: &gtk::ToggleButton) {
             // TODO error dialogs
             eprintln!("Failed to link recording bin: {}", err);
             pipeline.remove(&bin).unwrap();
+            // This might fail but we don't care anymore: we're in an error path
             let _ = bin.set_state(gst::State::Null);
         }
     } else {
@@ -832,7 +837,7 @@ fn on_record_button_clicked(app: &App, record_button: &gtk::ToggleButton) {
             srcpad.unlink(&sinkpad).unwrap();
             tee.release_request_pad(srcpad);
 
-            // Asynchronously send the EOS event to the sinkpad as
+            // Asynchronously send the end-of-stream event to the sinkpad as
             // this might block for a while and our closure here
             // might've been called from the main UI thread
             let sinkpad = sinkpad.clone();
@@ -1037,6 +1042,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         let inner = app.0.borrow();
 
         if let Some(ref pipeline) = inner.pipeline {
+            // This might fail but as we shut down right now anyway this
+            // doesn't matter
             let _ = pipeline.set_state(gst::State::Null);
         }
     });
