@@ -61,58 +61,102 @@ fn get_settings_file_path() -> PathBuf {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
-enum OutputFormat {
+enum SnapshotFormat {
     JPEG,
     PNG,
 }
 
-impl<'a> From<&'a str> for OutputFormat {
+impl<'a> From<&'a str> for SnapshotFormat {
     fn from(s: &'a str) -> Self {
         match s.to_lowercase().as_str() {
-            "jpeg" => OutputFormat::JPEG,
-            "png" => OutputFormat::PNG,
+            "jpeg" => SnapshotFormat::JPEG,
+            "png" => SnapshotFormat::PNG,
             _ => panic!("unsupported output format"),
         }
     }
 }
 
-impl From<Option<String>> for OutputFormat {
+impl From<Option<String>> for SnapshotFormat {
     fn from(s: Option<String>) -> Self {
         if let Some(s) = s {
             match s.to_lowercase().as_str() {
-                "jpeg" => OutputFormat::JPEG,
-                "png" => OutputFormat::PNG,
+                "jpeg" => SnapshotFormat::JPEG,
+                "png" => SnapshotFormat::PNG,
                 _ => panic!("unsupported output format"),
             }
         } else {
-            OutputFormat::default()
+            SnapshotFormat::default()
         }
     }
 }
 
-impl Default for OutputFormat {
+impl Default for SnapshotFormat {
     fn default() -> Self {
-        OutputFormat::JPEG
+        SnapshotFormat::JPEG
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
+enum RecordFormat {
+    H264Mp4,
+    Vp8WebM,
+}
+
+impl<'a> From<&'a str> for RecordFormat {
+    fn from(s: &'a str) -> Self {
+        match s.to_lowercase().as_str() {
+            "h264/mp4" => RecordFormat::H264Mp4,
+            "vp8/webm" => RecordFormat::Vp8WebM,
+            _ => panic!("unsupported output format"),
+        }
+    }
+}
+
+impl From<Option<String>> for RecordFormat {
+    fn from(s: Option<String>) -> Self {
+        if let Some(s) = s {
+            match s.to_lowercase().as_str() {
+                "h264/mp4" => RecordFormat::H264Mp4,
+                "vp8/webm" => RecordFormat::Vp8WebM,
+                _ => panic!("unsupported output format"),
+            }
+        } else {
+            RecordFormat::default()
+        }
+    }
+}
+
+impl Default for RecordFormat {
+    fn default() -> Self {
+        RecordFormat::H264Mp4
     }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 struct SnapshotSettings {
     // By default, the user's picture directory.
-    folder: PathBuf,
+    snapshot_directory: PathBuf,
     // Format in which to save the snapshot.
-    format: OutputFormat,
+    snapshot_format: SnapshotFormat,
     // Timer length in seconds.
     timer_length: u32,
+
+    // By default, the user's video directory.
+    record_directory: PathBuf,
+    // Format to use for recording videos.
+    record_format: RecordFormat,
 }
 
 impl Default for SnapshotSettings {
     fn default() -> SnapshotSettings {
         SnapshotSettings {
-            folder: glib::get_user_special_dir(glib::UserDirectory::Pictures)
+            snapshot_directory: glib::get_user_special_dir(glib::UserDirectory::Pictures)
                 .unwrap_or_else(|| PathBuf::from(".")),
-            format: OutputFormat::default(),
+            snapshot_format: SnapshotFormat::default(),
             timer_length: 3,
+            record_directory: glib::get_user_special_dir(glib::UserDirectory::Videos)
+                .unwrap_or_else(|| PathBuf::from(".")),
+            record_format: RecordFormat::default(),
         }
     }
 }
@@ -218,11 +262,17 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
     // Create a new GStreamer pipeline that captures from the default video source,
     // which is usually a camera, converts the output to RGB if needed and then passes
     // it to a GTK video sink
-    let pipeline = gst::parse_launch("autovideosrc ! queue ! videoconvert ! gtksink name=sink")?;
+    let pipeline = gst::parse_launch(
+        "autovideosrc ! tee name=tee ! queue ! videoconvert ! gtksink name=sink",
+    )?;
 
     // Upcast to a gst::Pipeline as the above function could've also returned
     // an arbitrary gst::Element if a different string was passed
     let pipeline = pipeline.downcast::<gst::Pipeline>().unwrap();
+
+    // Request that the pipeline forwards us all messages, even those that it would otherwise
+    // aggregate first
+    pipeline.set_property_message_forward(true);
 
     // Install a message handler on the pipeline's bus to catch errors
     let bus = pipeline.get_bus().unwrap();
@@ -261,6 +311,43 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
                 inner.error = Some(Box::new(err.get_error()));
                 inner.application.quit();
             }
+            MessageView::Element(msg) => {
+                // Catch the EOS messages from our filesink. Because the other sink,
+                // gtksink, will never receive EOS we will never get a normal EOS message
+                // from the bus. The normal EOS message would only be sent once *all*
+                // sinks had their EOS message posted.
+                match msg.get_structure() {
+                    Some(s) if s.get_name() == "GstBinForwarded" => {
+                        let msg = s.get::<gst::Message>("message").unwrap();
+
+                        if let MessageView::Eos(..) = msg.view() {
+                            // Get our pipeline and the recording bin
+                            let pipeline = match app.0.borrow().pipeline {
+                                Some(ref pipeline) => pipeline.clone(),
+                                None => return glib::Continue(true),
+                            };
+                            let bin = match msg
+                                .get_src()
+                                .and_then(|src| src.clone().downcast::<gst::Element>().ok())
+                            {
+                                Some(src) => src,
+                                None => return glib::Continue(true),
+                            };
+
+                            // And then asynchronously remove it and set its state to Null
+                            pipeline.call_async(move |pipeline| {
+                                let _ = pipeline.remove(&bin);
+
+                                // TODO error dialog
+                                if let Err(err) = bin.set_state(gst::State::Null).into_result() {
+                                    eprintln!("Failed to stop recording: {}", err);
+                                }
+                            });
+                        }
+                    }
+                    _ => (),
+                }
+            }
             _ => (),
         };
 
@@ -277,18 +364,26 @@ fn create_pipeline(app: &App) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn er
 
 // Save the current settings from the values of the various UI elements
 fn save_settings(
-    folder_button: &gtk::FileChooserButton,
-    options: &gtk::ComboBoxText,
+    snapshot_directory_button: &gtk::FileChooserButton,
+    snapshot_format: &gtk::ComboBoxText,
     timer_entry: &gtk::SpinButton,
+    record_directory_button: &gtk::FileChooserButton,
+    record_format: &gtk::ComboBoxText,
 ) {
     let settings = SnapshotSettings {
-        folder: PathBuf::from(
-            folder_button
+        snapshot_directory: PathBuf::from(
+            snapshot_directory_button
                 .get_filename()
                 .unwrap_or_else(|| glib::get_home_dir().unwrap_or_else(|| PathBuf::from("."))),
         ),
-        format: OutputFormat::from(options.get_active_text()),
+        snapshot_format: SnapshotFormat::from(snapshot_format.get_active_text()),
         timer_length: timer_entry.get_value_as_int() as _,
+        record_directory: PathBuf::from(
+            record_directory_button
+                .get_filename()
+                .unwrap_or_else(|| glib::get_home_dir().unwrap_or_else(|| PathBuf::from("."))),
+        ),
+        record_format: RecordFormat::from(record_format.get_active_text()),
     };
     let s = get_settings_file_path();
     if let Err(e) = serde_any::to_file(&s, &settings) {
@@ -324,7 +419,7 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
             if !parent.exists() {
                 if let Err(e) = create_dir_all(parent) {
                     eprintln!(
-                        "Error when trying to build settings folder '{}': {:?}",
+                        "Error when trying to build settings snapshot_directory '{}': {:?}",
                         parent.display(),
                         e
                     );
@@ -351,38 +446,38 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     grid.set_margin_bottom(10);
 
     //
-    // OUTPUT FOLDER
+    // SNAPSHOT FOLDER
     //
-    let folder_label = gtk::Label::new("Output folder");
-    let folder_chooser_but = gtk::FileChooserButton::new(
+    let snapshot_directory_label = gtk::Label::new("Snapshot directory");
+    let snapshot_directory_chooser_but = gtk::FileChooserButton::new(
         "Pick a directory to save snapshots",
         gtk::FileChooserAction::SelectFolder,
     );
 
-    folder_label.set_halign(gtk::Align::Start);
-    folder_chooser_but.set_filename(settings.folder);
+    snapshot_directory_label.set_halign(gtk::Align::Start);
+    snapshot_directory_chooser_but.set_filename(settings.snapshot_directory);
 
-    grid.attach(&folder_label, 0, 0, 1, 1);
-    grid.attach(&folder_chooser_but, 1, 0, 3, 1);
+    grid.attach(&snapshot_directory_label, 0, 0, 1, 1);
+    grid.attach(&snapshot_directory_chooser_but, 1, 0, 3, 1);
 
     //
-    // OUTPUT FORMAT OPTIONS
+    // SNAPSHOT FORMAT OPTIONS
     //
-    let format_label = gtk::Label::new("Output format");
-    let options = gtk::ComboBoxText::new();
+    let format_label = gtk::Label::new("Snapshot format");
+    let snapshot_format = gtk::ComboBoxText::new();
 
     format_label.set_halign(gtk::Align::Start);
 
-    options.append_text("JPEG");
-    options.append_text("PNG");
-    options.set_active(match settings.format {
-        OutputFormat::JPEG => 0,
-        OutputFormat::PNG => 1,
+    snapshot_format.append_text("JPEG");
+    snapshot_format.append_text("PNG");
+    snapshot_format.set_active(match settings.snapshot_format {
+        SnapshotFormat::JPEG => 0,
+        SnapshotFormat::PNG => 1,
     });
-    options.set_hexpand(true);
+    snapshot_format.set_hexpand(true);
 
     grid.attach(&format_label, 0, 1, 1, 1);
-    grid.attach(&options, 1, 1, 3, 1);
+    grid.attach(&snapshot_format, 1, 1, 3, 1);
 
     //
     // TIMER LENGTH
@@ -399,6 +494,40 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     grid.attach(&timer_entry, 1, 2, 3, 1);
 
     //
+    // RECORD FOLDER
+    //
+    let record_directory_label = gtk::Label::new("Record directory");
+    let record_directory_chooser_but = gtk::FileChooserButton::new(
+        "Pick a directory to save records",
+        gtk::FileChooserAction::SelectFolder,
+    );
+
+    record_directory_label.set_halign(gtk::Align::Start);
+    record_directory_chooser_but.set_filename(settings.record_directory);
+
+    grid.attach(&record_directory_label, 0, 3, 1, 1);
+    grid.attach(&record_directory_chooser_but, 1, 3, 3, 1);
+
+    //
+    // RECORD FORMAT OPTIONS
+    //
+    let format_label = gtk::Label::new("Record format");
+    let record_format = gtk::ComboBoxText::new();
+
+    format_label.set_halign(gtk::Align::Start);
+
+    record_format.append_text("H264/MP4");
+    record_format.append_text("VP8/WebM");
+    record_format.set_active(match settings.record_format {
+        RecordFormat::H264Mp4 => 0,
+        RecordFormat::Vp8WebM => 1,
+    });
+    record_format.set_hexpand(true);
+
+    grid.attach(&format_label, 0, 4, 1, 1);
+    grid.attach(&record_format, 1, 4, 3, 1);
+
+    //
     // PUTTING WIDGETS INTO DIALOG
     //
     let content_area = dialog.get_content_area();
@@ -408,17 +537,34 @@ fn build_snapshot_settings_window(parent: &gtk::Window) {
     //
     // ADDING SETTINGS "AUTOMATIC" SAVE
     //
-    save_settings!(timer_entry, connect_value_changed, folder_chooser_but, options =>
+    save_settings!(timer_entry, connect_value_changed,
+                   snapshot_directory_chooser_but, snapshot_format, record_directory_chooser_but, record_format =>
                    move |timer_entry| {
-        save_settings(&folder_chooser_but, &options, &timer_entry);
+        save_settings(&snapshot_directory_chooser_but, &snapshot_format, &timer_entry, &record_directory_chooser_but, &record_format);
     });
-    save_settings!(options, connect_changed, folder_chooser_but, timer_entry =>
-                   move |options| {
-        save_settings(&folder_chooser_but, &options, &timer_entry);
+
+    save_settings!(snapshot_format, connect_changed,
+                   snapshot_directory_chooser_but, timer_entry, record_directory_chooser_but, record_format =>
+                   move |snapshot_format| {
+        save_settings(&snapshot_directory_chooser_but, &snapshot_format, &timer_entry, &record_directory_chooser_but, &record_format);
     });
-    save_settings!(folder_chooser_but, connect_file_set, timer_entry, options =>
-                   move |folder_chooser_but| {
-        save_settings(&folder_chooser_but, &options, &timer_entry);
+
+    save_settings!(snapshot_directory_chooser_but, connect_file_set, timer_entry, snapshot_format,
+                   record_directory_chooser_but, record_format =>
+                   move |snapshot_directory_chooser_but| {
+        save_settings(&snapshot_directory_chooser_but, &snapshot_format, &timer_entry, &record_directory_chooser_but, &record_format);
+    });
+
+    save_settings!(record_format, connect_changed,
+                   snapshot_directory_chooser_but, timer_entry, record_directory_chooser_but, snapshot_format =>
+                   move |record_format| {
+        save_settings(&snapshot_directory_chooser_but, &snapshot_format, &timer_entry, &record_directory_chooser_but, &record_format);
+    });
+
+    save_settings!(record_directory_chooser_but, connect_file_set,
+                   timer_entry, snapshot_format, snapshot_directory_chooser_but, record_format =>
+                   move |record_directory_chooser_but| {
+        save_settings(&snapshot_directory_chooser_but, &snapshot_format, &timer_entry, &record_directory_chooser_but, &record_format);
     });
 
     dialog.connect_response(|dialog, _| {
@@ -434,9 +580,9 @@ fn take_snapshot(pipeline: &gst::Pipeline) {
     let settings = load_settings();
 
     // Create the GStreamer caps for the output format
-    let (caps, extension) = match settings.format {
-        OutputFormat::JPEG => (gst::Caps::new_simple("image/jpeg", &[]), "jpg"),
-        OutputFormat::PNG => (gst::Caps::new_simple("image/png", &[]), "png"),
+    let (caps, extension) = match settings.snapshot_format {
+        SnapshotFormat::JPEG => (gst::Caps::new_simple("image/jpeg", &[]), "jpg"),
+        SnapshotFormat::PNG => (gst::Caps::new_simple("image/png", &[]), "png"),
     };
 
     let sink = pipeline.get_by_name("sink").expect("sink not found");
@@ -450,7 +596,7 @@ fn take_snapshot(pipeline: &gst::Pipeline) {
     };
 
     // Create the filename and open the file writable
-    let mut filename = settings.folder.clone();
+    let mut filename = settings.snapshot_directory.clone();
     let now = Local::now();
     filename.push(format!(
         "{}.{}",
@@ -458,6 +604,7 @@ fn take_snapshot(pipeline: &gst::Pipeline) {
         extension
     ));
 
+    // TODO error dialogs
     let mut file = match File::create(&filename) {
         Err(err) => {
             eprintln!(
@@ -478,6 +625,7 @@ fn take_snapshot(pipeline: &gst::Pipeline) {
 
         let sample = match res {
             Err(err) => {
+                // TODO error dialogs
                 eprintln!("Failed to convert sample: {}", err);
                 return;
             }
@@ -490,6 +638,7 @@ fn take_snapshot(pipeline: &gst::Pipeline) {
             .expect("Failed to map buffer readable");
 
         if let Err(err) = file.write_all(&map) {
+            // TODO error dialogs
             eprintln!(
                 "Failed to write snapshot file {}: {}",
                 filename.display(),
@@ -573,6 +722,131 @@ fn on_snapshot_button_clicked(
     }
 }
 
+// When the record button is clicked, we have to start or stop recording
+fn on_record_button_clicked(app: &App, record_button: &gtk::ToggleButton) {
+    let settings = load_settings();
+
+    // If we have no pipeline (can't really happen) just return
+    let pipeline = match app.0.borrow().pipeline {
+        Some(ref pipeline) => pipeline.clone(),
+        None => return,
+    };
+
+    // Start/stop recording based on button active'ness
+    if record_button.get_active() {
+        // If we already have a record-bin (i.e. we still finish the previous one)
+        // just return for now and deactivate the button again
+        if pipeline.get_by_name("record-bin").is_some() {
+            record_button.set_state_flags(
+                record_button.get_state_flags() & !gtk::StateFlags::CHECKED,
+                true,
+            );
+            return;
+        }
+
+        let (bin_description, extension) = match settings.record_format {
+            RecordFormat::H264Mp4 => ("name=record-bin queue ! videoconvert ! x264enc ! video/x-h264,profile=baseline ! mp4mux ! filesink name=sink", "mp4"),
+            RecordFormat::Vp8WebM => ("name=record-bin queue ! videoconvert ! vp8enc ! webmmux ! filesink name=sink", "webm"),
+        };
+
+        let bin = match gst::parse_bin_from_description(bin_description, true) {
+            Err(err) => {
+                // TODO error dialogs
+                eprintln!("Failed to create recording pipeline: {}", err);
+                return;
+            },
+            Ok(bin) => bin,
+        };
+
+        // Get our file sink element by its name and set the location where to write the recording
+        let sink = bin.get_by_name("sink").unwrap();
+        let mut filename = settings.record_directory.clone();
+        let now = Local::now();
+        filename.push(format!(
+            "{}.{}",
+            now.format("Recording %Y-%m-%d %H:%M:%S"),
+            extension
+        ));
+        // All strings in GStreamer are UTF8, we need to convert the path to UTF8
+        // which in theory can fail
+        sink.set_property("location", &(filename.to_str().unwrap()))
+            .unwrap();
+
+        // First try setting the recording bin to playing: if this fails
+        // we know this before it potentially interferred with the other
+        // part of the pipeline
+        if let Err(_) = bin.set_state(gst::State::Playing).into_result() {
+            // TODO error dialogs
+            eprintln!("Failed to start recording bin");
+            return;
+        }
+
+        // Add the bin to the pipeline. This would only fail if there was already
+        // a bin with the same name, which we ensured can't happen
+        pipeline.add(&bin).unwrap();
+
+        // Get our tee element by name, request a new source pad from it and
+        // then link that to our recording bin to actually start receiving data
+        let tee = pipeline.get_by_name("tee").unwrap();
+        let srcpad = tee.get_request_pad("src_%u").unwrap();
+        let sinkpad = bin.get_static_pad("sink").unwrap();
+
+        // If linking fails, we just undo what we did above
+        if let Err(err) = srcpad.link(&sinkpad).into_result() {
+            // TODO error dialogs
+            eprintln!("Failed to link recording bin: {}", err);
+            pipeline.remove(&bin).unwrap();
+            let _ = bin.set_state(gst::State::Null);
+        }
+    } else {
+        // Get our recording bin, if it does not exist then nothing
+        // has to be stopped actually. This shouldn't really happen
+        let bin = pipeline.get_by_name("record-bin").unwrap();
+
+        // Get the source pad of the tee that is connected to the recording bin
+        let sinkpad = bin.get_static_pad("sink").unwrap();
+        let srcpad = match sinkpad.get_peer() {
+            Some(peer) => peer,
+            None => return,
+        };
+
+        // Once the tee source pad is idle and we wouldn't interfere with
+        // any data flow, unlink the tee and the recording bin and finalize
+        // the recording bin by sending it an end-of-stream event
+        //
+        // Once the end-of-stream event is handled by the whole recording bin,
+        // we get an end-of-stream message from it in the message handler and
+        // the shut down the recording bin and remove it from the pipeline
+        //
+        // The closure below might be called directly from the main UI thread
+        // here or at a later time from a GStreamer streaming thread
+        srcpad.add_probe(gst::PadProbeType::IDLE, move |srcpad, _| {
+            // Get the parent of the tee source pad, i.e. the tee itself
+            let tee = srcpad
+                .get_parent()
+                .unwrap()
+                .downcast::<gst::Element>()
+                .unwrap();
+
+            // Unlink the tee source pad and then release it
+            srcpad.unlink(&sinkpad).unwrap();
+            tee.release_request_pad(srcpad);
+
+            // Asynchronously send the EOS event to the sinkpad as
+            // this might block for a while and our closure here
+            // might've been called from the main UI thread
+            let sinkpad = sinkpad.clone();
+            bin.call_async(move |_| {
+                sinkpad.send_event(gst::Event::new_eos().build());
+            });
+
+            // Don't block the pad but remove the probe to let everything
+            // continue as normal
+            gst::PadProbeReturn::Remove
+        });
+    }
+}
+
 fn build_ui(app: &App, application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
     app.0.borrow_mut().main_window = Some(window.clone());
@@ -610,9 +884,14 @@ fn build_ui(app: &App, application: &gtk::Application) {
     let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
     snapshot_button.add(&snapshot_button_image);
 
-    // Pack the snapshot button on the left, the main menu on
+    let record_button = gtk::ToggleButton::new();
+    let record_button_image = gtk::Image::new_from_icon_name("media-record", 1);
+    record_button.add(&record_button_image);
+
+    // Pack the snapshot/record buttons on the left, the main menu on
     // the right of the header bar and set it on our window
     header_bar.pack_start(&snapshot_button);
+    header_bar.pack_start(&record_button);
     header_bar.pack_end(&main_menu);
     window.set_titlebar(&header_bar);
 
@@ -641,6 +920,14 @@ fn build_ui(app: &App, application: &gtk::Application) {
     snapshot_button.connect_clicked(move |snapshot_button| {
         let app = upgrade_weak!(app_weak);
         on_snapshot_button_clicked(&app, &snapshot_button, &overlay_text);
+    });
+
+    // When the record button is clicked we need to start or stop
+    // recording based on its state
+    let app_weak = app.downgrade();
+    record_button.connect_clicked(move |record_button| {
+        let app = upgrade_weak!(app_weak);
+        on_record_button_clicked(&app, &record_button);
     });
 
     // Create the pipeline and if that fails, shut down and
