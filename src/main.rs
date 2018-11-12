@@ -169,12 +169,10 @@ struct App(Rc<RefCell<AppInner>>);
 struct AppWeak(Weak<RefCell<AppInner>>);
 
 impl App {
-    fn new(application: &gtk::Application) -> App {
+    fn new() -> App {
         App(Rc::new(RefCell::new(AppInner {
-            application: application.clone(),
             main_window: None,
             pipeline: None,
-            error: None,
             timeout: None,
             remaining_secs_before_snapshot: 0,
         })))
@@ -192,13 +190,8 @@ impl AppWeak {
 }
 
 struct AppInner {
-    application: gtk::Application,
     main_window: Option<gtk::ApplicationWindow>,
     pipeline: Option<gst::Pipeline>,
-
-    // Any error that happened during runtime and should be
-    // reported before the application quits
-    error: Option<Box<dyn error::Error>>,
 
     // Snapshot timer state
     timeout: Option<glib::source::SourceId>,
@@ -231,8 +224,6 @@ fn save_settings(
     let s = get_settings_file_path();
     if let Err(e) = serde_any::to_file(&s, &settings) {
         eprintln!("Error when trying to save file: {:?}", e);
-    } else {
-        println!("Saved settings {:?} in '{}'", settings, s.display());
     }
 }
 
@@ -243,7 +234,11 @@ fn load_settings() -> SnapshotSettings {
         match serde_any::from_file::<SnapshotSettings, _>(&s) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Error when opening '{}': {:?}", s.display(), e);
+                show_error_dialog(
+                    None::<&gtk::Window>,
+                    false,
+                    format!("Error when opening '{}': {:?}", s.display(), e).as_str(),
+                );
                 SnapshotSettings::default()
             }
         }
@@ -253,17 +248,22 @@ fn load_settings() -> SnapshotSettings {
 }
 
 // Construct the settings dialog and ensure that the settings file exists and is loaded
-fn build_settings_window(parent: &gtk::Window) {
+fn build_settings_window(parent: &Option<gtk::Window>) {
     let s = get_settings_file_path();
 
     if !s.exists() {
-        if let Some(parent) = s.parent() {
-            if !parent.exists() {
-                if let Err(e) = create_dir_all(parent) {
-                    eprintln!(
-                        "Error when trying to build settings snapshot_directory '{}': {:?}",
-                        parent.display(),
-                        e
+        if let Some(parent_dir) = s.parent() {
+            if !parent_dir.exists() {
+                if let Err(e) = create_dir_all(parent_dir) {
+                    show_error_dialog(
+                        parent.as_ref(),
+                        false,
+                        format!(
+                            "Error when trying to build settings snapshot_directory '{}': {:?}",
+                            parent_dir.display(),
+                            e
+                        )
+                        .as_str(),
                     );
                 }
             }
@@ -277,7 +277,7 @@ fn build_settings_window(parent: &gtk::Window) {
     //
     let dialog = gtk::Dialog::new_with_buttons(
         Some("Snapshot settings"),
-        Some(parent),
+        parent.as_ref(),
         gtk::DialogFlags::MODAL,
         &[("Close", gtk::ResponseType::Close.into())],
     );
@@ -417,6 +417,30 @@ fn build_settings_window(parent: &gtk::Window) {
     dialog.show_all();
 }
 
+// Creates an error dialog, and if it's fatal it will quit the application once
+// the dialog is closed
+fn show_error_dialog<P: IsA<gtk::Window>>(parent: Option<&P>, fatal: bool, text: &str) {
+    let dialog = gtk::MessageDialog::new(
+        parent,
+        gtk::DialogFlags::MODAL,
+        gtk::MessageType::Error,
+        gtk::ButtonsType::Ok,
+        text,
+    );
+
+    dialog.connect_response(move |dialog, _| {
+        dialog.destroy();
+        if fatal {
+            if let Some(app) = gio::Application::get_default() {
+                app.quit();
+            }
+        }
+    });
+
+    dialog.set_resizable(false);
+    dialog.show_all();
+}
+
 impl App {
     fn build_actions(&self, application: &gtk::Application) {
         // Create actions for our settings and about dialogs
@@ -430,9 +454,7 @@ impl App {
         settings.connect_activate(move |_action, _parameter| {
             let application = upgrade_weak!(weak_application);
 
-            if let Some(window) = application.get_active_window() {
-                build_settings_window(&window);
-            }
+            build_settings_window(&application.get_active_window());
         });
 
         let about = gio::SimpleAction::new("about", None);
@@ -481,20 +503,27 @@ impl App {
         // here we are only interested in errors so far
         match msg.view() {
             MessageView::Error(err) => {
-                eprintln!(
-                    "Error from {:?}: {} ({:?})",
-                    err.get_src().map(|s| s.get_path_string()),
-                    err.get_error(),
-                    err.get_debug()
+                show_error_dialog(
+                    self.0.borrow().main_window.as_ref(),
+                    true,
+                    format!(
+                        "Error from {:?}: {} ({:?})",
+                        err.get_src().map(|s| s.get_path_string()),
+                        err.get_error(),
+                        err.get_debug()
+                    )
+                    .as_str(),
                 );
-
-                // On errors, we store the error that happened
-                // and print it later
-                let mut inner = self.0.borrow_mut();
-
-                inner.error = Some(Box::new(err.get_error()));
-                inner.application.quit();
             }
+            MessageView::Application(msg) => match msg.get_structure() {
+                // Here we can send ourselves warning messages from any thread and show them
+                // to the user in the UI in case something goes wrong
+                Some(s) if s.get_name() == "warning" => {
+                    let text = s.get::<&str>("text").expect("Warning message without text");
+                    show_error_dialog(self.0.borrow().main_window.as_ref(), false, text);
+                }
+                _ => (),
+            },
             MessageView::Element(msg) => {
                 // Catch the end-of-stream messages from our filesink. Because the other sink,
                 // gtksink, will never receive end-of-stream we will never get a normal
@@ -532,9 +561,19 @@ impl App {
                                 // reason. It's not a problem
                                 let _ = pipeline.remove(&bin);
 
-                                // TODO error dialog
                                 if let Err(err) = bin.set_state(gst::State::Null).into_result() {
-                                    eprintln!("Failed to stop recording: {}", err);
+                                    let bus = pipeline.get_bus().expect("Pipeline has no bus");
+                                    let _ = bus.post(
+                                        &gst::Message::new_application(
+                                            gst::Structure::builder("warning")
+                                                .field(
+                                                    "text",
+                                                    &format!("Failed to stop recording: {}", err),
+                                                )
+                                                .build(),
+                                        )
+                                        .build(),
+                                    );
                                 }
                             });
                         }
@@ -637,13 +676,17 @@ impl App {
             extension
         ));
 
-        // TODO error dialogs
         let mut file = match File::create(&filename) {
             Err(err) => {
-                eprintln!(
-                    "Failed to create snapshot file {}: {}",
-                    filename.display(),
-                    err
+                show_error_dialog(
+                    self.0.borrow().main_window.as_ref(),
+                    false,
+                    format!(
+                        "Failed to create snapshot file {}: {}",
+                        filename.display(),
+                        err
+                    )
+                    .as_str(),
                 );
                 return;
             }
@@ -653,13 +696,20 @@ impl App {
         // Then convert it from whatever format we got to PNG or JPEG as requested
         // and write it out
         println!("Writing snapshot to {}", filename.display());
+        let bus = pipeline.get_bus().expect("Pipeline has no bus");
         gst_video::convert_sample_async(&last_sample, &caps, 5 * gst::SECOND, move |res| {
             use std::io::Write;
 
             let sample = match res {
                 Err(err) => {
-                    // TODO error dialogs
-                    eprintln!("Failed to convert sample: {}", err);
+                    let _ = bus.post(
+                        &gst::Message::new_application(
+                            gst::Structure::builder("warning")
+                                .field("text", &format!("Failed to convert sample: {}", err))
+                                .build(),
+                        )
+                        .build(),
+                    );
                     return;
                 }
                 Ok(sample) => sample,
@@ -671,11 +721,20 @@ impl App {
                 .expect("Failed to map buffer readable");
 
             if let Err(err) = file.write_all(&map) {
-                // TODO error dialogs
-                eprintln!(
-                    "Failed to write snapshot file {}: {}",
-                    filename.display(),
-                    err
+                let _ = bus.post(
+                    &gst::Message::new_application(
+                        gst::Structure::builder("warning")
+                            .field(
+                                "text",
+                                &format!(
+                                    "Failed to write snapshot file {}: {}",
+                                    filename.display(),
+                                    err
+                                ),
+                            )
+                            .build(),
+                    )
+                    .build(),
                 );
             }
         });
@@ -789,8 +848,11 @@ impl App {
 
             let bin = match gst::parse_bin_from_description(bin_description, true) {
                 Err(err) => {
-                    // TODO error dialogs
-                    eprintln!("Failed to create recording pipeline: {}", err);
+                    show_error_dialog(
+                        self.0.borrow().main_window.as_ref(),
+                        false,
+                        format!("Failed to create recording pipeline: {}", err).as_str(),
+                    );
                     return;
                 }
                 Ok(bin) => bin,
@@ -807,6 +869,7 @@ impl App {
                 now.format("Recording %Y-%m-%d %H:%M:%S"),
                 extension
             ));
+
             // All strings in GStreamer are UTF8, we need to convert the path to UTF8
             // which in theory can fail
             sink.set_property("location", &(filename.to_str().unwrap()))
@@ -816,8 +879,11 @@ impl App {
             // we know this before it potentially interferred with the other
             // part of the pipeline
             if let Err(_) = bin.set_state(gst::State::Playing).into_result() {
-                // TODO error dialogs
-                eprintln!("Failed to start recording bin");
+                show_error_dialog(
+                    self.0.borrow().main_window.as_ref(),
+                    false,
+                    "Failed to start recording",
+                );
                 return;
             }
 
@@ -839,12 +905,17 @@ impl App {
 
             // If linking fails, we just undo what we did above
             if let Err(err) = srcpad.link(&sinkpad).into_result() {
-                // TODO error dialogs
-                eprintln!("Failed to link recording bin: {}", err);
+                show_error_dialog(
+                    self.0.borrow().main_window.as_ref(),
+                    false,
+                    format!("Failed to link recording bin: {}", err).as_str(),
+                );
                 // This might fail but we don't care anymore: we're in an error path
                 let _ = pipeline.remove(&bin);
                 let _ = bin.set_state(gst::State::Null);
             }
+
+            println!("Recording to {}", filename.display());
         } else {
             // Get our recording bin, if it does not exist then nothing
             // has to be stopped actually. This shouldn't really happen
@@ -860,6 +931,8 @@ impl App {
                 Some(peer) => peer,
                 None => return,
             };
+
+            println!("Stopping recording");
 
             // Once the tee source pad is idle and we wouldn't interfere with
             // any data flow, unlink the tee and the recording bin and finalize
@@ -978,8 +1051,11 @@ impl App {
         // remember the error that happened
         let (pipeline, view) = match self.create_pipeline() {
             Err(err) => {
-                self.0.borrow_mut().error = Some(err);
-                application.quit();
+                show_error_dialog(
+                    Some(&window),
+                    true,
+                    format!("Error creating pipeline: {:?}", err).as_str(),
+                );
                 return;
             }
             Ok(res) => res,
@@ -1018,8 +1094,8 @@ impl App {
         self.build_ui(application);
     }
 
-    fn on_activate(&self, application: &gtk::Application) {
-        let mut inner = self.0.borrow_mut();
+    fn on_activate(&self) {
+        let inner = self.0.borrow_mut();
         // We only show our window here once the application
         // is activated. This means that when a second instance
         // is started, the window of the first instance will be
@@ -1031,19 +1107,13 @@ impl App {
 
         // Once the UI is shown, start the GStreamer pipeline. If
         // an error happens, we immediately shut down
-        {
-            // Needed because we need to borrow two parts of the application struct
-            let AppInner {
-                ref pipeline,
-                ref mut error,
-                ..
-            } = *inner;
-
-            if let Some(ref pipeline) = pipeline {
-                if let Err(err) = pipeline.set_state(gst::State::Playing).into_result() {
-                    *error = Some(Box::new(err));
-                    application.quit();
-                }
+        if let Some(ref pipeline) = inner.pipeline {
+            if let Err(err) = pipeline.set_state(gst::State::Playing).into_result() {
+                show_error_dialog(
+                    inner.main_window.as_ref(),
+                    true,
+                    format!("Failed to set pipeline to playing: {:?}", err).as_str(),
+                );
             }
         }
     }
@@ -1070,7 +1140,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     gst::init()?;
     let application = gtk::Application::new(APPLICATION_NAME, gio::ApplicationFlags::empty())?;
 
-    let app = App::new(&application);
+    let app = App::new();
 
     // On application startup (of the main instance) we create
     // the actions and UI. A second process would not run this
@@ -1084,9 +1154,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     // when the first process is started, and in the first process
     // whenever a second process is started
     let app_weak = app.downgrade();
-    application.connect_activate(move |application| {
+    application.connect_activate(move |_| {
         let app = upgrade_weak!(app_weak);
-        app.on_activate(application);
+        app.on_activate();
     });
 
     // When the application is shut down, first shut down
@@ -1100,12 +1170,5 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     // And now run the application until the end
     application.run(&args().collect::<Vec<_>>());
 
-    // If an error happened some time during the application,
-    // return it here
-    let mut app_inner = app.0.borrow_mut();
-    if let Some(err) = app_inner.error.take() {
-        Err(err)
-    } else {
-        Ok(())
-    }
+    Ok(())
 }
