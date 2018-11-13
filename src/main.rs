@@ -18,160 +18,21 @@ extern crate chrono;
 mod macros;
 
 mod gstreamer;
+pub mod types;
 pub mod utils;
 
 use gio::prelude::*;
 use gio::MenuExt;
+use gst::prelude::*;
 use gtk::prelude::*;
 
-use gst::prelude::*;
-
-use std::cell::RefCell;
 use std::env::args;
 use std::error;
 use std::fs::{create_dir_all};
-use std::path::PathBuf;
-use std::rc::{Rc, Weak};
+
+use types::*;
 
 pub const APPLICATION_NAME: &'static str = "com.github.rustfest";
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
-enum SnapshotFormat {
-    JPEG,
-    PNG,
-}
-
-impl<'a> From<&'a str> for SnapshotFormat {
-    fn from(s: &'a str) -> Self {
-        match s.to_lowercase().as_str() {
-            "jpeg" => SnapshotFormat::JPEG,
-            "png" => SnapshotFormat::PNG,
-            _ => panic!("unsupported output format"),
-        }
-    }
-}
-
-impl From<Option<String>> for SnapshotFormat {
-    fn from(s: Option<String>) -> Self {
-        if let Some(s) = s {
-            match s.to_lowercase().as_str() {
-                "jpeg" => SnapshotFormat::JPEG,
-                "png" => SnapshotFormat::PNG,
-                _ => panic!("unsupported output format"),
-            }
-        } else {
-            SnapshotFormat::default()
-        }
-    }
-}
-
-impl Default for SnapshotFormat {
-    fn default() -> Self {
-        SnapshotFormat::JPEG
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
-pub enum RecordFormat {
-    H264Mp4,
-    Vp8WebM,
-}
-
-impl<'a> From<&'a str> for RecordFormat {
-    fn from(s: &'a str) -> Self {
-        match s.to_lowercase().as_str() {
-            "h264/mp4" => RecordFormat::H264Mp4,
-            "vp8/webm" => RecordFormat::Vp8WebM,
-            _ => panic!("unsupported output format"),
-        }
-    }
-}
-
-impl From<Option<String>> for RecordFormat {
-    fn from(s: Option<String>) -> Self {
-        if let Some(s) = s {
-            match s.to_lowercase().as_str() {
-                "h264/mp4" => RecordFormat::H264Mp4,
-                "vp8/webm" => RecordFormat::Vp8WebM,
-                _ => panic!("unsupported output format"),
-            }
-        } else {
-            RecordFormat::default()
-        }
-    }
-}
-
-impl Default for RecordFormat {
-    fn default() -> Self {
-        RecordFormat::H264Mp4
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct SnapshotSettings {
-    // By default, the user's picture directory.
-    snapshot_directory: PathBuf,
-    // Format in which to save the snapshot.
-    snapshot_format: SnapshotFormat,
-    // Timer length in seconds.
-    timer_length: u32,
-
-    // By default, the user's video directory.
-    record_directory: PathBuf,
-    // Format to use for recording videos.
-    record_format: RecordFormat,
-}
-
-impl Default for SnapshotSettings {
-    fn default() -> SnapshotSettings {
-        SnapshotSettings {
-            snapshot_directory: glib::get_user_special_dir(glib::UserDirectory::Pictures)
-                .unwrap_or_else(|| PathBuf::from(".")),
-            snapshot_format: SnapshotFormat::default(),
-            timer_length: 3,
-            record_directory: glib::get_user_special_dir(glib::UserDirectory::Videos)
-                .unwrap_or_else(|| PathBuf::from(".")),
-            record_format: RecordFormat::default(),
-        }
-    }
-}
-
-// Our refcounted application struct for containing all the
-// state we have to carry around
-#[derive(Clone)]
-struct App(Rc<RefCell<AppInner>>);
-
-struct AppWeak(Weak<RefCell<AppInner>>);
-
-impl App {
-    fn new() -> App {
-        App(Rc::new(RefCell::new(AppInner {
-            main_window: None,
-            pipeline: None,
-            timeout: None,
-            remaining_secs_before_snapshot: 0,
-        })))
-    }
-
-    fn downgrade(&self) -> AppWeak {
-        AppWeak(Rc::downgrade(&self.0))
-    }
-}
-
-impl AppWeak {
-    fn upgrade(&self) -> Option<App> {
-        self.0.upgrade().map(App)
-    }
-}
-
-struct AppInner {
-    main_window: Option<gtk::ApplicationWindow>,
-    pipeline: Option<gst::Pipeline>,
-
-    // Snapshot timer state
-    timeout: Option<glib::source::SourceId>,
-    remaining_secs_before_snapshot: u32,
-}
 
 // Construct the settings dialog and ensure that the settings file exists and is loaded
 fn build_settings_window(parent: &Option<gtk::Window>) {
@@ -483,17 +344,11 @@ impl App {
     fn on_record_button_clicked(&self, record_button: &gtk::ToggleButton) {
         let settings = utils::load_settings();
 
-        // If we have no pipeline (can't really happen) just return
-        let pipeline = match self.0.borrow().pipeline {
-            Some(ref pipeline) => pipeline.clone(),
-            None => return,
-        };
-
         // Start/stop recording based on button active'ness
         if record_button.get_active() {
-            self.start_recording(&pipeline, record_button, settings);
+            self.start_recording(record_button, settings);
         } else {
-            self.stop_recording(&pipeline);
+            self.stop_recording();
         }
     }
 
