@@ -166,10 +166,15 @@ impl App {
 
     pub fn start_recording(
         &self,
-        pipeline: &gst::Pipeline,
         record_button: &gtk::ToggleButton,
         settings: SnapshotSettings,
     ) {
+        // If we have no pipeline (can't really happen) just return
+        let pipeline = match self.0.borrow().pipeline {
+            Some(ref pipeline) => pipeline.clone(),
+            None => return,
+        };
+
         // If we already have a record-bin (i.e. we still finish the previous one)
         // just return for now and deactivate the button again
         if pipeline.get_by_name("record-bin").is_some() {
@@ -257,7 +262,13 @@ impl App {
         println!("Recording to {}", filename.display());
     }
 
-    pub fn stop_recording(&self, pipeline: &gst::Pipeline) {
+    pub fn stop_recording(&self) {
+        // If we have no pipeline (can't really happen) just return
+        let pipeline = match self.0.borrow().pipeline {
+            Some(ref pipeline) => pipeline.clone(),
+            None => return,
+        };
+
         // Get our recording bin, if it does not exist then nothing
         // has to be stopped actually. This shouldn't really happen
         let bin = pipeline
