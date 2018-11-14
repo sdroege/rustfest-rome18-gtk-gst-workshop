@@ -28,7 +28,7 @@ use gtk::prelude::*;
 
 use std::env::args;
 use std::error;
-use std::fs::{create_dir_all};
+use std::fs::create_dir_all;
 
 use types::*;
 

@@ -5,10 +5,10 @@ use gtk::prelude::*;
 
 use std::path::PathBuf;
 
-use APPLICATION_NAME;
 use RecordFormat;
 use SnapshotFormat;
 use SnapshotSettings;
+use APPLICATION_NAME;
 
 pub fn get_settings_file_path() -> PathBuf {
     let mut path = glib::get_user_config_dir().unwrap_or_else(|| PathBuf::from("."));

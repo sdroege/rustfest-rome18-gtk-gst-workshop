@@ -11,10 +11,10 @@ use gtk;
 use gtk::prelude::*;
 
 use gst;
-use gst_video;
-use gst::MessageView;
 use gst::prelude::*;
 use gst::BinExt;
+use gst::MessageView;
+use gst_video;
 
 use std::error;
 use std::fs::File;
@@ -164,11 +164,7 @@ impl App {
         Ok((pipeline, widget))
     }
 
-    pub fn start_recording(
-        &self,
-        record_button: &gtk::ToggleButton,
-        settings: SnapshotSettings,
-    ) {
+    pub fn start_recording(&self, record_button: &gtk::ToggleButton, settings: SnapshotSettings) {
         // If we have no pipeline (can't really happen) just return
         let pipeline = match self.0.borrow().pipeline {
             Some(ref pipeline) => pipeline.clone(),
