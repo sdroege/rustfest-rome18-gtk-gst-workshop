@@ -1,6 +1,5 @@
 use App;
 use RecordFormat;
-use Settings;
 use SnapshotFormat;
 
 use utils::{load_settings, show_error_dialog};
@@ -23,7 +22,7 @@ impl App {
     // Here we handle all message we get from the GStreamer pipeline. These are
     // notifications sent from GStreamer, including errors that happend at
     // runtime.
-    pub fn on_pipeline_message(&self, msg: &gst::MessageRef) {
+    fn on_pipeline_message(&self, msg: &gst::MessageRef) {
         // A message can contain various kinds of information but
         // here we are only interested in errors so far
         match msg.view() {
@@ -164,12 +163,14 @@ impl App {
         Ok((pipeline, widget))
     }
 
-    pub fn start_recording(&self, record_button: &gtk::ToggleButton, settings: Settings) {
+    pub fn start_recording(&self, record_button: &gtk::ToggleButton) {
         // If we have no pipeline (can't really happen) just return
         let pipeline = match self.0.borrow().pipeline {
             Some(ref pipeline) => pipeline.clone(),
             None => return,
         };
+
+        let settings = load_settings();
 
         // If we already have a record-bin (i.e. we still finish the previous one)
         // just return for now and deactivate the button again

@@ -342,11 +342,9 @@ impl App {
 
     // When the record button is clicked, we have to start or stop recording
     fn on_record_button_clicked(&self, record_button: &gtk::ToggleButton) {
-        let settings = utils::load_settings();
-
         // Start/stop recording based on button active'ness
         if record_button.get_active() {
-            self.start_recording(record_button, settings);
+            self.start_recording(record_button);
         } else {
             self.stop_recording();
         }
