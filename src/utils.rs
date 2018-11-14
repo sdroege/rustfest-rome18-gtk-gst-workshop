@@ -6,8 +6,8 @@ use gtk::prelude::*;
 use std::path::PathBuf;
 
 use RecordFormat;
+use Settings;
 use SnapshotFormat;
-use SnapshotSettings;
 use APPLICATION_NAME;
 
 pub fn get_settings_file_path() -> PathBuf {
@@ -25,7 +25,7 @@ pub fn save_settings(
     record_directory_button: &gtk::FileChooserButton,
     record_format: &gtk::ComboBoxText,
 ) {
-    let settings = SnapshotSettings {
+    let settings = Settings {
         snapshot_directory: PathBuf::from(
             snapshot_directory_button
                 .get_filename()
@@ -47,10 +47,10 @@ pub fn save_settings(
 }
 
 // Load the current settings
-pub fn load_settings() -> SnapshotSettings {
+pub fn load_settings() -> Settings {
     let s = get_settings_file_path();
     if s.exists() && s.is_file() {
-        match serde_any::from_file::<SnapshotSettings, _>(&s) {
+        match serde_any::from_file::<Settings, _>(&s) {
             Ok(s) => s,
             Err(e) => {
                 show_error_dialog(
@@ -58,11 +58,11 @@ pub fn load_settings() -> SnapshotSettings {
                     false,
                     format!("Error when opening '{}': {:?}", s.display(), e).as_str(),
                 );
-                SnapshotSettings::default()
+                Settings::default()
             }
         }
     } else {
-        SnapshotSettings::default()
+        Settings::default()
     }
 }
 

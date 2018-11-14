@@ -1,7 +1,7 @@
 use App;
 use RecordFormat;
+use Settings;
 use SnapshotFormat;
-use SnapshotSettings;
 
 use utils::{load_settings, show_error_dialog};
 
@@ -164,7 +164,7 @@ impl App {
         Ok((pipeline, widget))
     }
 
-    pub fn start_recording(&self, record_button: &gtk::ToggleButton, settings: SnapshotSettings) {
+    pub fn start_recording(&self, record_button: &gtk::ToggleButton, settings: Settings) {
         // If we have no pipeline (can't really happen) just return
         let pipeline = match self.0.borrow().pipeline {
             Some(ref pipeline) => pipeline.clone(),

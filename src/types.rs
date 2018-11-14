@@ -77,7 +77,7 @@ impl Default for RecordFormat {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct SnapshotSettings {
+pub struct Settings {
     // By default, the user's picture directory.
     pub snapshot_directory: PathBuf,
     // Format in which to save the snapshot.
@@ -91,9 +91,9 @@ pub struct SnapshotSettings {
     pub record_format: RecordFormat,
 }
 
-impl Default for SnapshotSettings {
-    fn default() -> SnapshotSettings {
-        SnapshotSettings {
+impl Default for Settings {
+    fn default() -> Settings {
+        Settings {
             snapshot_directory: glib::get_user_special_dir(glib::UserDirectory::Pictures)
                 .unwrap_or_else(|| PathBuf::from(".")),
             snapshot_format: SnapshotFormat::default(),
