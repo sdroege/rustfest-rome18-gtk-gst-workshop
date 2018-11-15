@@ -3,12 +3,15 @@ name = "workshop"
 version = "0.1.0"
 authors = ["Sebastian Dröge <sebastian@centricular.com>", "Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 
+[features]
+v1_10 = ["gstreamer/v1_10"]
+
 [dependencies]
 glib = "0.6"
 gio = "0.5"
 gdk = "0.9"
 gtk = { version = "0.5", features = ["v3_10"] }
-gstreamer = { version = "0.12", features = ["v1_10"] }
+gstreamer = { version = "0.12" }
 gstreamer-video = "0.12"
 fragile = "0.3"
 serde = "^1"
