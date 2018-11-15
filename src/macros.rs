@@ -19,3 +19,18 @@ macro_rules! save_settings {
         });
     }}
 }
+
+macro_rules! async {
+    ($x:ident => |$($p:tt),*| $body:expr) => {{
+        #[cfg(feature = "v1_10")]
+        $x.call_async(move |$($p),*| {
+            $body
+        });
+        #[cfg(not(feature = "v1_10"))]
+        {
+            ::std::thread::spawn(move || {
+                $body
+            });
+        }
+    }}
+}

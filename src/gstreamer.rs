@@ -80,7 +80,7 @@ impl App {
                             };
 
                             // And then asynchronously remove it and set its state to Null
-                            pipeline.call_async(move |pipeline| {
+                            async!(pipeline => |pipeline| {
                                 // Ignore if the bin was not in the pipeline anymore for whatever
                                 // reason. It's not a problem
                                 let _ = pipeline.remove(&bin);
@@ -311,7 +311,7 @@ impl App {
             // this might block for a while and our closure here
             // might've been called from the main UI thread
             let sinkpad = sinkpad.clone();
-            bin.call_async(move |_| {
+            async!(bin => |_| {
                 sinkpad.send_event(gst::Event::new_eos().build());
             });
 
