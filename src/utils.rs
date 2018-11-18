@@ -5,9 +5,9 @@ use gtk::prelude::*;
 
 use std::path::PathBuf;
 
-use RecordFormat;
-use Settings;
-use SnapshotFormat;
+use types::RecordFormat;
+use types::Settings;
+use types::SnapshotFormat;
 use APPLICATION_NAME;
 
 pub fn get_settings_file_path() -> PathBuf {

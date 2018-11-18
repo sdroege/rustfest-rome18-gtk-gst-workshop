@@ -1,8 +1,4 @@
-use std::cell::RefCell;
 use std::path::PathBuf;
-use std::rc::{Rc, Weak};
-
-use gst;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub enum SnapshotFormat {
@@ -105,39 +101,3 @@ impl Default for Settings {
     }
 }
 
-// Our refcounted application struct for containing all the
-// state we have to carry around
-#[derive(Clone)]
-pub struct App(pub Rc<RefCell<AppInner>>);
-
-pub struct AppWeak(pub Weak<RefCell<AppInner>>);
-
-impl App {
-    pub fn new() -> App {
-        App(Rc::new(RefCell::new(AppInner {
-            main_window: None,
-            pipeline: None,
-            timeout: None,
-            remaining_secs_before_snapshot: 0,
-        })))
-    }
-
-    pub fn downgrade(&self) -> AppWeak {
-        AppWeak(Rc::downgrade(&self.0))
-    }
-}
-
-impl AppWeak {
-    pub fn upgrade(&self) -> Option<App> {
-        self.0.upgrade().map(App)
-    }
-}
-
-pub struct AppInner {
-    pub main_window: Option<gtk::ApplicationWindow>,
-    pub pipeline: Option<gst::Pipeline>,
-
-    // Snapshot timer state
-    pub timeout: Option<glib::source::SourceId>,
-    pub remaining_secs_before_snapshot: u32,
-}
