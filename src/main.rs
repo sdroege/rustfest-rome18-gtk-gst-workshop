@@ -18,11 +18,11 @@ extern crate chrono;
 mod macros;
 
 mod gstreamer;
+mod headerbar;
 pub mod types;
 pub mod utils;
 
 use gio::prelude::*;
-use gio::MenuExt;
 use gst::prelude::*;
 use gtk::prelude::*;
 
@@ -361,33 +361,14 @@ impl App {
 
         // Create headerbar for the application, including the main
         // menu and a close button
-        let header_bar = gtk::HeaderBar::new();
-        header_bar.set_show_close_button(true);
-
-        let main_menu = gtk::MenuButton::new();
-        let main_menu_image = gtk::Image::new_from_icon_name("open-menu-symbolic", 1);
-        main_menu.add(&main_menu_image);
-
-        // For now the main menu only contains the settings and about dialog
-        let main_menu_model = gio::Menu::new();
-        main_menu_model.append("Settings", "app.settings");
-        main_menu_model.append("About", "app.about");
-        main_menu.set_menu_model(&main_menu_model);
-
-        let snapshot_button = gtk::ToggleButton::new();
-        let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo-symbolic", 1);
-        snapshot_button.add(&snapshot_button_image);
-
-        let record_button = gtk::ToggleButton::new();
-        let record_button_image = gtk::Image::new_from_icon_name("media-record", 1);
-        record_button.add(&record_button_image);
+        let header_bar = headerbar::HeaderBar::new();
+        // FIXME: these should not be needed
+        let snapshot_button = &header_bar.snapshot;
+        let record_button = &header_bar.record;
 
         // Pack the snapshot/record buttons on the left, the main menu on
         // the right of the header bar and set it on our window
-        header_bar.pack_start(&snapshot_button);
-        header_bar.pack_start(&record_button);
-        header_bar.pack_end(&main_menu);
-        window.set_titlebar(&header_bar);
+        window.set_titlebar(&header_bar.container);
 
         // Create an overlay for showing the seconds until a snapshot
         // This is hidden while we're not doing a countdown
