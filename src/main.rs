@@ -375,7 +375,7 @@ impl App {
         main_menu.set_menu_model(&main_menu_model);
 
         let snapshot_button = gtk::ToggleButton::new();
-        let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo", 1);
+        let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo-symbolic", 1);
         snapshot_button.add(&snapshot_button_image);
 
         let record_button = gtk::ToggleButton::new();
