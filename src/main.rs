@@ -19,6 +19,7 @@ mod macros;
 
 mod gstreamer;
 mod headerbar;
+mod overlay;
 pub mod app;
 pub mod settings;
 pub mod utils;

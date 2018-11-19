@@ -4,6 +4,7 @@ use gio::prelude::*;
 
 use utils;
 use headerbar;
+use overlay::Overlay;
 use settings::create_settings_dialog;
 
 use std::rc::{Rc, Weak};
@@ -270,22 +271,8 @@ impl App {
 
         // Create an overlay for showing the seconds until a snapshot
         // This is hidden while we're not doing a countdown
-        let overlay = gtk::Overlay::new();
-
-        let overlay_text = gtk::Label::new("0");
-        // Our label should have the countdown-label style from the stylesheet
-        gtk::WidgetExt::set_name(&overlay_text, "countdown-label");
-
-        // Center the label in the overlay and give it a width of 3 characters
-        // to always have the same width independent of the width of the current
-        // number
-        overlay_text.set_halign(gtk::Align::Center);
-        overlay_text.set_valign(gtk::Align::Center);
-        overlay_text.set_width_chars(3);
-        overlay_text.set_no_show_all(true);
-        overlay_text.set_visible(false);
-
-        overlay.add_overlay(&overlay_text);
+        let overlay = Overlay::default();
+        let overlay_text = overlay.label.clone();
 
         // When the snapshot button is clicked we need to start the
         // countdown, stop the countdown or directly do a snapshot
@@ -320,13 +307,8 @@ impl App {
         // Store the pipeline for later usage and add the view widget
         // to the UI
         self.0.borrow_mut().pipeline = Some(pipeline);
-
-        // A Box allows to place multiple widgets next to each other
-        // vertically or horizontally
-        let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        vbox.pack_start(&view, true, true, 0);
-
-        overlay.add(&vbox);
-        window.add(&overlay);
+        // FIXME: Make this a method
+        overlay.content.pack_start(&view, true, true, 0);
+        window.add(&overlay.container);
     }
 }
