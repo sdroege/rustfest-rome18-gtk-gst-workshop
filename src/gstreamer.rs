@@ -1,6 +1,6 @@
 use App;
-use types::RecordFormat;
-use types::SnapshotFormat;
+use settings::RecordFormat;
+use settings::SnapshotFormat;
 
 use utils::{load_settings, show_error_dialog};
 
