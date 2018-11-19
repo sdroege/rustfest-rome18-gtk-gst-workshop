@@ -20,7 +20,7 @@ mod macros;
 mod gstreamer;
 mod headerbar;
 pub mod app;
-pub mod types;
+pub mod settings;
 pub mod utils;
 
 use gio::prelude::*;
