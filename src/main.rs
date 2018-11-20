@@ -17,6 +17,7 @@ extern crate chrono;
 #[macro_use]
 mod macros;
 
+mod about_dialog;
 pub mod app;
 mod gstreamer;
 mod headerbar;
