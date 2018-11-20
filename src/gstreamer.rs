@@ -205,7 +205,7 @@ impl App {
         let now = Local::now();
         filename.push(format!(
             "{}.{}",
-            now.format("Recording %Y-%m-%d %H:%M:%S"),
+            now.format("Recording %Y-%m-%d %H-%M-%S"),
             extension
         ));
 
@@ -350,7 +350,7 @@ impl App {
         let now = Local::now();
         filename.push(format!(
             "{}.{}",
-            now.format("Snapshot %Y-%m-%d %H:%M:%S"),
+            now.format("Snapshot %Y-%m-%d %H-%M-%S"),
             extension
         ));
 
