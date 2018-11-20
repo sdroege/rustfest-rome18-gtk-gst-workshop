@@ -2,8 +2,8 @@ use gtk::prelude::*;
 
 use utils;
 
-use std::path::PathBuf;
 use std::fs::create_dir_all;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub enum SnapshotFormat {

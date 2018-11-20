@@ -1,14 +1,14 @@
-use gtk::prelude::*;
-use gst::prelude::*;
 use gio::prelude::*;
+use gst::prelude::*;
+use gtk::prelude::*;
 
-use utils;
 use headerbar;
 use overlay::Overlay;
 use settings::create_settings_dialog;
+use utils;
 
-use std::rc::{Rc, Weak};
 use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
 use gst;
 
