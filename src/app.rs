@@ -307,8 +307,7 @@ impl App {
         // Store the pipeline for later usage and add the view widget
         // to the UI
         self.0.borrow_mut().pipeline = Some(pipeline);
-        // FIXME: Make this a method
-        overlay.content.pack_start(&view, true, true, 0);
+        overlay.initialize_content(&view);
         window.add(&overlay.container);
     }
 }

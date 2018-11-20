@@ -6,7 +6,7 @@ pub struct Overlay {
     // The Countdown label... lift off!
     pub label: gtk::Label,
     // The container that will hold the gstreamer widget
-    pub content: gtk::Box,
+    content: gtk::Box,
 }
 
 impl Default for Overlay {
@@ -44,4 +44,9 @@ impl Default for Overlay {
     }
 }
 
-impl Overlay {}
+impl Overlay {
+    // Add the widget to the content container
+    pub fn initialize_content<P: IsA<gtk::Widget>>(&self, widget: &P) {
+        self.content.pack_start(widget, true, true, 0);
+    }
+}
