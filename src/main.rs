@@ -357,7 +357,7 @@ impl App {
         window.set_title("RustFest 2018 GTK+ & GStreamer WebCam Viewer");
         window.set_border_width(5);
         window.set_position(gtk::WindowPosition::Center);
-        window.set_default_size(350, 300);
+        window.set_default_size(848, 480);
 
         // Create headerbar for the application, including the main
         // menu and a close button
