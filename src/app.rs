@@ -94,7 +94,6 @@ impl App {
         if let Some(ref pipeline) = inner.pipeline {
             if let Err(err) = pipeline.set_state(gst::State::Playing).into_result() {
                 utils::show_error_dialog(
-                    inner.main_window.as_ref(),
                     true,
                     format!("Failed to set pipeline to playing: {:?}", err).as_str(),
                 );
@@ -273,7 +272,6 @@ impl App {
         let (pipeline, view) = match self.create_pipeline() {
             Err(err) => {
                 utils::show_error_dialog(
-                    Some(&window),
                     true,
                     format!("Error creating pipeline: {:?}", err).as_str(),
                 );

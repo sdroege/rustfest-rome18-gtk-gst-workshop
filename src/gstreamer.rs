@@ -28,7 +28,6 @@ impl App {
         match msg.view() {
             MessageView::Error(err) => {
                 show_error_dialog(
-                    self.0.borrow().main_window.as_ref(),
                     true,
                     format!(
                         "Error from {:?}: {} ({:?})",
@@ -44,7 +43,7 @@ impl App {
                 // to the user in the UI in case something goes wrong
                 Some(s) if s.get_name() == "warning" => {
                     let text = s.get::<&str>("text").expect("Warning message without text");
-                    show_error_dialog(self.0.borrow().main_window.as_ref(), false, text);
+                    show_error_dialog(false, text);
                 }
                 _ => (),
             },
@@ -190,7 +189,6 @@ impl App {
         let bin = match gst::parse_bin_from_description(bin_description, true) {
             Err(err) => {
                 show_error_dialog(
-                    self.0.borrow().main_window.as_ref(),
                     false,
                     format!("Failed to create recording pipeline: {}", err).as_str(),
                 );
@@ -221,7 +219,6 @@ impl App {
         // part of the pipeline
         if let Err(_) = bin.set_state(gst::State::Playing).into_result() {
             show_error_dialog(
-                self.0.borrow().main_window.as_ref(),
                 false,
                 "Failed to start recording",
             );
@@ -247,7 +244,6 @@ impl App {
         // If linking fails, we just undo what we did above
         if let Err(err) = srcpad.link(&sinkpad).into_result() {
             show_error_dialog(
-                self.0.borrow().main_window.as_ref(),
                 false,
                 format!("Failed to link recording bin: {}", err).as_str(),
             );
@@ -361,7 +357,6 @@ impl App {
         let mut file = match File::create(&filename) {
             Err(err) => {
                 show_error_dialog(
-                    self.0.borrow().main_window.as_ref(),
                     false,
                     format!(
                         "Failed to create snapshot file {}: {}",

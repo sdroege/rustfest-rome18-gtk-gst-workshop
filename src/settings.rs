@@ -115,7 +115,6 @@ pub fn create_settings_dialog(parent: &Option<gtk::Window>) {
             if !parent_dir.exists() {
                 if let Err(e) = create_dir_all(parent_dir) {
                     utils::show_error_dialog(
-                        parent.as_ref(),
                         false,
                         format!(
                             "Error when trying to build settings snapshot_directory '{}': {:?}",

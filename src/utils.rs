@@ -52,7 +52,6 @@ pub fn load_settings() -> Settings {
             Ok(s) => s,
             Err(e) => {
                 show_error_dialog(
-                    None::<&gtk::Window>,
                     false,
                     format!("Error when opening '{}': {:?}", s.display(), e).as_str(),
                 );
@@ -66,9 +65,12 @@ pub fn load_settings() -> Settings {
 
 // Creates an error dialog, and if it's fatal it will quit the application once
 // the dialog is closed
-pub fn show_error_dialog<P: IsA<gtk::Window>>(parent: Option<&P>, fatal: bool, text: &str) {
+pub fn show_error_dialog(fatal: bool, text: &str) {
+    let app = gio::Application::get_default().unwrap().downcast::<gtk::Application>().unwrap();
+    let window = app.get_active_window();
+
     let dialog = gtk::MessageDialog::new(
-        parent,
+        window.as_ref(),
         gtk::DialogFlags::MODAL,
         gtk::MessageType::Error,
         gtk::ButtonsType::Ok,
