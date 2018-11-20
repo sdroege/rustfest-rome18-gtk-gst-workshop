@@ -2,6 +2,7 @@ use gio::prelude::*;
 use gst::prelude::*;
 use gtk::prelude::*;
 
+use about_dialog::create_about_dialog;
 use headerbar;
 use overlay::Overlay;
 use settings::create_settings_dialog;
@@ -130,30 +131,7 @@ impl App {
         let weak_application = application.downgrade();
         about.connect_activate(move |_action, _parameter| {
             let application = upgrade_weak!(weak_application);
-
-            let p = gtk::AboutDialog::new();
-
-            p.set_authors(&["Sebastian Dröge", "Guillaume Gomez"]);
-            p.set_website_label("github repository");
-            p.set_website("https://github.com/sdroege/rustfest-rome18-gtk-gst-workshop");
-            p.set_comments("A webcam viewer written with gtk-rs and gstreamer-rs");
-            p.set_copyright("This is under MIT license");
-            if let Some(window) = application.get_active_window() {
-                p.set_transient_for(&window);
-            }
-            p.set_modal(true);
-            p.set_program_name("RustFest 2018 GTK+ & GStreamer WebCam Viewer");
-
-            // When any response on the dialog happens, we simply destroy it.
-            //
-            // We don't have any custom buttons added so this will only ever
-            // handle the close button, otherwise we could distinguish the
-            // buttons by the response
-            p.connect_response(|dialog, _response| {
-                dialog.destroy();
-            });
-
-            p.show_all();
+            create_about_dialog(&application);
         });
 
         application.add_action(&settings);
