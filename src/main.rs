@@ -17,10 +17,10 @@ extern crate chrono;
 #[macro_use]
 mod macros;
 
+pub mod app;
 mod gstreamer;
 mod headerbar;
 mod overlay;
-pub mod app;
 pub mod settings;
 pub mod utils;
 
