@@ -2,11 +2,16 @@ extern crate gio;
 extern crate glib;
 extern crate gtk;
 
+extern crate gstreamer as gst;
+
+extern crate fragile;
+
 #[macro_use]
 mod macros;
 mod about_dialog;
 mod app;
 mod header_bar;
+mod pipeline;
 
 use gio::prelude::*;
 
@@ -21,6 +26,9 @@ use app::App;
 pub const APPLICATION_NAME: &str = "com.github.gtk-rs.cameraview";
 
 fn main() -> Result<(), Box<dyn error::Error>> {
+    // Initialize GStreamer. This checks, among other things, what plugins are available
+    gst::init()?;
+
     // Create an application with our name and the default flags. By default, applications can only
     // have a single instance and any second instance will only activate the first one again
     let application = gtk::Application::new(APPLICATION_NAME, gio::ApplicationFlags::empty())?;

@@ -4,8 +4,10 @@ use gtk::{self, prelude::*};
 
 use about_dialog::show_about_dialog;
 use header_bar::HeaderBar;
+use pipeline::Pipeline;
 
 use std::cell::RefCell;
+use std::error;
 use std::ops;
 use std::rc::{Rc, Weak};
 
@@ -47,10 +49,12 @@ pub struct AppInner {
     // We will use this at a later time
     #[allow(dead_code)]
     header_bar: HeaderBar,
+
+    pipeline: Pipeline,
 }
 
 impl App {
-    fn new(application: &gtk::Application) -> App {
+    fn new(application: &gtk::Application) -> Result<App, Box<dyn error::Error>> {
         // Here build the UI but don't show it yet
         let window = gtk::ApplicationWindow::new(application);
 
@@ -62,15 +66,22 @@ impl App {
         // Create headerbar for the application window
         let header_bar = HeaderBar::new(&window);
 
+        // Create the pipeline and if that fail return
+        let pipeline =
+            Pipeline::new().map_err(|err| format!("Error creating pipeline: {:?}", err))?;
+
+        window.add(&pipeline.get_widget());
+
         let app = App(Rc::new(AppInner {
             main_window: window,
             header_bar,
+            pipeline,
         }));
 
         // Create the application actions
         app.create_actions(application);
 
-        app
+        Ok(app)
     }
 
     // Downgrade to a weak reference
@@ -79,7 +90,15 @@ impl App {
     }
 
     pub fn on_startup(application: &gtk::Application) {
-        let app = App::new(application);
+        // Create application and error out if that fails for whatever reason
+        let app = match App::new(application) {
+            Ok(app) => app,
+            Err(err) => {
+                eprintln!("Error creating application: {:?}", err);
+                application.quit();
+                return;
+            }
+        };
 
         // When the application is activated show the UI. This happens when the first process is
         // started, and in the first process whenever a second process is started
@@ -117,10 +136,20 @@ impl App {
         // https://gitlab.gnome.org/GNOME/gtk/issues/624
         self.main_window
             .present_with_time((glib::get_monotonic_time() / 1000) as u32);
+
+        // Once the UI is shown, start the GStreamer pipeline. If
+        // an error happens, we immediately shut down
+        if let Err(err) = self.pipeline.start() {
+            eprintln!("Failed to set pipeline to playing: {:?}", err);
+            gio::Application::get_default().map(|app| app.quit());
+        }
     }
 
     // Called when the application shuts down. We drop our app struct here
-    fn on_shutdown(self) {}
+    fn on_shutdown(self) {
+        // This might fail but as we shut down right now anyway this doesn't matter
+        let _ = self.pipeline.stop();
+    }
 
     // Create our application actions here
     //
