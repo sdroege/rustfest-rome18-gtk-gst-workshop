@@ -1,7 +1,8 @@
-use gio::prelude::*;
+use gio::{self, prelude::*};
 use glib;
 use gtk::{self, prelude::*};
 
+use about_dialog::show_about_dialog;
 use header_bar::HeaderBar;
 
 use std::cell::RefCell;
@@ -61,10 +62,15 @@ impl App {
         // Create headerbar for the application window
         let header_bar = HeaderBar::new(&window);
 
-        App(Rc::new(AppInner {
+        let app = App(Rc::new(AppInner {
             main_window: window,
             header_bar,
-        }))
+        }));
+
+        // Create the application actions
+        app.create_actions(application);
+
+        app
     }
 
     // Downgrade to a weak reference
@@ -115,4 +121,18 @@ impl App {
 
     // Called when the application shuts down. We drop our app struct here
     fn on_shutdown(self) {}
+
+    // Create our application actions here
+    //
+    // These are connected to our buttons and can be triggered by the buttons, as well as remotely
+    fn create_actions(&self, application: &gtk::Application) {
+        // about action: when activated it will show an about dialog
+        let about = gio::SimpleAction::new("about", None);
+        let weak_application = application.downgrade();
+        about.connect_activate(move |_action, _parameter| {
+            let application = upgrade_weak!(weak_application);
+            show_about_dialog(&application);
+        });
+        application.add_action(&about);
+    }
 }

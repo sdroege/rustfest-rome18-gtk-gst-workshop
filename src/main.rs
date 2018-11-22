@@ -4,6 +4,7 @@ extern crate gtk;
 
 #[macro_use]
 mod macros;
+mod about_dialog;
 mod app;
 mod header_bar;
 
