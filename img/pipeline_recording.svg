@@ -1,0 +1,1046 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="369.72275mm"
+   height="80.187103mm"
+   viewBox="0 0 369.72274 80.187103"
+   version="1.1"
+   id="svg7479"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="pipeline_recording.svg">
+  <defs
+     id="defs7473">
+    <marker
+       style="overflow:visible"
+       id="Arrow2Mendq"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path5832" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker7416"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path7414" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker7420"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path7418" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker7424"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path7422" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow2Mendq-3"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path5832-6" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow2Mendq-5"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path5832-62" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker12912"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path12910" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker12916"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path12914" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow2Mendq-9"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path5832-1" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow2Mendq-9-2"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path5832-1-3" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow2Mendq-9-1"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path5832-1-2" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow2Mendq-36"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mendq">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="font-size:12px;fill:#204a87;fill-rule:evenodd;stroke:#204a87;stroke-width:0.625;stroke-linejoin:round"
+         id="path5832-10" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="1"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="730.84586"
+     inkscape:cy="173.92261"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="5"
+     fit-margin-left="5"
+     fit-margin-bottom="5"
+     fit-margin-right="5"
+     inkscape:window-width="1680"
+     inkscape:window-height="986"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7476">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(25.208786,-119.96504)">
+    <g
+       id="g13743">
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.76603222;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect4780"
+         width="358.95673"
+         height="69.421074"
+         x="-19.825769"
+         y="125.34806"
+         rx="1.887736"
+         ry="1.9454134" />
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3413"
+         width="40.548744"
+         height="26.23671"
+         x="139.35051"
+         y="132.30482"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="140.87886"
+         y="136.34653"
+         id="text3415"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan3417"
+           x="140.87886"
+           y="136.34653">videoconvert</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3421"
+         width="13.113226"
+         height="8.9607048"
+         x="139.34897"
+         y="140.94337" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="142.51793"
+         y="146.41013"
+         id="text3423"><tspan
+           sodipodi:role="line"
+           id="tspan3425"
+           x="142.51793"
+           y="146.41013"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3429"
+         width="13.113226"
+         height="8.9607048"
+         x="166.77704"
+         y="140.94337" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="171.80374"
+         y="146.14594"
+         id="text3431"><tspan
+           sodipodi:role="line"
+           id="tspan3433"
+           x="171.80374"
+           y="146.14594"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3457"
+         width="40.548744"
+         height="26.23671"
+         x="190.83382"
+         y="132.30482"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="192.36215"
+         y="136.34653"
+         id="text3459"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan3461"
+           x="192.36215"
+           y="136.34653">gtksink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3465"
+         width="13.113226"
+         height="8.9607048"
+         x="190.83226"
+         y="140.94337" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="194.00128"
+         y="146.41013"
+         id="text3467"><tspan
+           sodipodi:role="line"
+           id="tspan3469"
+           x="194.00128"
+           y="146.41013"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="-16.980474"
+         y="130.9425"
+         id="text4782"><tspan
+           style="font-weight:bold;font-size:4.76249981px;line-height:1.25;-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan4784"
+           x="-16.980474"
+           y="130.9425">pipeline</tspan></text>
+      <path
+         inkscape:connector-curvature="0"
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq)"
+         d="m 128.46621,145.42923 h 9.78962"
+         id="path6087"
+         sodipodi:nodetypes="cc" />
+      <path
+         inkscape:connector-curvature="0"
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq)"
+         d="m 180.01506,145.42908 h 9.78959"
+         id="path6089"
+         sodipodi:nodetypes="cc" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         id="text6835"
+         y="191.56497"
+         x="-17.117514"
+         style="font-style:italic;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans';fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-weight:normal;font-size:3.70416665px;line-height:1.25;-inkscape-font-specification:'Bitstream Vera Sans';stroke-width:0.26458331pt"
+           y="191.56497"
+           x="-17.117514"
+           id="tspan6837"
+           sodipodi:role="line">Pipeline with capture and recording</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9208"
+         width="40.548744"
+         height="26.23671"
+         x="-17.664875"
+         y="148.93983"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="-15.997075"
+         y="153.51076"
+         id="text9210"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan9212"
+           x="-15.997075"
+           y="153.51076">autovideosrc</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9214"
+         width="13.113226"
+         height="8.9607048"
+         x="9.901557"
+         y="157.57788" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="14.928287"
+         y="162.78041"
+         id="text9216"><tspan
+           sodipodi:role="line"
+           id="tspan9218"
+           x="14.928287"
+           y="162.78041"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9220"
+         width="40.548744"
+         height="26.23671"
+         x="33.834724"
+         y="148.93985"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="35.363056"
+         y="153.51076"
+         id="text9222"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan9224"
+           x="35.363056"
+           y="153.51076">tee</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9226"
+         width="13.113226"
+         height="8.9607048"
+         x="33.833176"
+         y="157.57788" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="37.002201"
+         y="163.0446"
+         id="text9228"><tspan
+           sodipodi:role="line"
+           id="tspan9230"
+           x="37.002201"
+           y="163.0446"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9232"
+         width="13.113226"
+         height="8.9607048"
+         x="61.261665"
+         y="151.88882" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="63.642559"
+         y="157.46194"
+         id="text9234"><tspan
+           sodipodi:role="line"
+           id="tspan9236"
+           x="63.642559"
+           y="157.46194"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src_01</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9238"
+         width="40.548744"
+         height="26.23671"
+         x="88.524437"
+         y="132.30525"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="90.052803"
+         y="136.87617"
+         id="text9240"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan9242"
+           x="90.052803"
+           y="136.87617">queue</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9244"
+         width="13.113226"
+         height="8.9607048"
+         x="88.522888"
+         y="140.9433" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="91.691917"
+         y="146.41003"
+         id="text9246"><tspan
+           sodipodi:role="line"
+           id="tspan9248"
+           x="91.691917"
+           y="146.41003"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9250"
+         width="13.113226"
+         height="8.9607048"
+         x="115.95139"
+         y="140.9433" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="120.97812"
+         y="146.14581"
+         id="text9252"><tspan
+           sodipodi:role="line"
+           id="tspan9254"
+           x="120.97812"
+           y="146.14581"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src</tspan></text>
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq-5)"
+         d="m 22.964336,162.0636 h 9.789583"
+         id="path9268"
+         sodipodi:nodetypes="cc"
+         inkscape:connector-curvature="0" />
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9334"
+         width="13.113226"
+         height="8.9607048"
+         x="61.21209"
+         y="163.39188" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="63.592983"
+         y="168.96498"
+         id="text9336"><tspan
+           sodipodi:role="line"
+           id="tspan9338"
+           x="63.592983"
+           y="168.96498"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src_02</tspan></text>
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq-5)"
+         d="m 74.225558,168.94565 13.371618,9.24655"
+         id="path9340"
+         sodipodi:nodetypes="cc"
+         inkscape:connector-curvature="0" />
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9342"
+         width="40.548744"
+         height="26.23671"
+         x="88.524437"
+         y="165.32327"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="90.052803"
+         y="169.89412"
+         id="text9344"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan9346"
+           x="90.052803"
+           y="169.89412">queue</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9348"
+         width="13.113226"
+         height="8.9607048"
+         x="88.522888"
+         y="173.96124" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="91.691917"
+         y="179.42796"
+         id="text9350"><tspan
+           sodipodi:role="line"
+           id="tspan9352"
+           x="91.691917"
+           y="179.42796"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <path
+         inkscape:connector-curvature="0"
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq-36)"
+         d="m 128.46621,178.44724 h 9.78963"
+         id="path6087-6"
+         sodipodi:nodetypes="cc" />
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect9354"
+         width="13.113226"
+         height="8.9607048"
+         x="115.95139"
+         y="173.96124" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="120.97812"
+         y="179.16377"
+         id="text9356"><tspan
+           sodipodi:role="line"
+           id="tspan9358"
+           x="120.97812"
+           y="179.16377"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src</tspan></text>
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/simple-player.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq-5)"
+         d="m 74.311918,155.89167 13.371618,-9.24656"
+         id="path9532"
+         sodipodi:nodetypes="cc"
+         inkscape:connector-curvature="0" />
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3413-2"
+         width="40.548744"
+         height="26.23671"
+         x="243.1097"
+         y="165.32249"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="244.63805"
+         y="169.3642"
+         id="text3415-7"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan3417-0"
+           x="244.63805"
+           y="169.3642">mp4mux</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3421-9"
+         width="13.113226"
+         height="8.9607048"
+         x="243.10815"
+         y="173.96104" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="246.27711"
+         y="179.4278"
+         id="text3423-3"><tspan
+           sodipodi:role="line"
+           id="tspan3425-6"
+           x="246.27711"
+           y="179.4278"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3429-0"
+         width="13.113226"
+         height="8.9607048"
+         x="270.53665"
+         y="173.96104" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="275.56351"
+         y="179.1636"
+         id="text3431-6"><tspan
+           sodipodi:role="line"
+           id="tspan3433-2"
+           x="275.56351"
+           y="179.1636"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3457-6"
+         width="40.548744"
+         height="26.23671"
+         x="294.59375"
+         y="165.32249"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="296.12207"
+         y="169.3642"
+         id="text3459-1"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan3461-8"
+           x="296.12207"
+           y="169.3642">filesink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3465-7"
+         width="13.113226"
+         height="8.9607048"
+         x="294.59219"
+         y="173.96104" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="297.7612"
+         y="179.4278"
+         id="text3467-9"><tspan
+           sodipodi:role="line"
+           id="tspan3469-2"
+           x="297.7612"
+           y="179.4278"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <path
+         inkscape:connector-curvature="0"
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq-9)"
+         d="m 283.77474,178.44676 h 9.78959"
+         id="path6089-0"
+         sodipodi:nodetypes="cc" />
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3413-2-7"
+         width="40.548744"
+         height="26.23671"
+         x="190.83414"
+         y="164.94452"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="192.36249"
+         y="168.98622"
+         id="text3415-7-5"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan3417-0-9"
+           x="192.36249"
+           y="168.98622">x264enc</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3421-9-2"
+         width="13.113226"
+         height="8.9607048"
+         x="190.8326"
+         y="173.58307" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="194.00156"
+         y="179.04982"
+         id="text3423-3-2"><tspan
+           sodipodi:role="line"
+           id="tspan3425-6-8"
+           x="194.00156"
+           y="179.04982"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3429-0-9"
+         width="13.113226"
+         height="8.9607048"
+         x="218.26067"
+         y="173.58307" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="223.28737"
+         y="178.78563"
+         id="text3431-6-7"><tspan
+           sodipodi:role="line"
+           id="tspan3433-2-3"
+           x="223.28737"
+           y="178.78563"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src</tspan></text>
+      <path
+         inkscape:connector-curvature="0"
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq-9-2)"
+         d="m 231.49918,178.06878 h 9.78959"
+         id="path6089-0-6"
+         sodipodi:nodetypes="cc" />
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:0.11764706;fill-rule:nonzero;stroke:#204a87;stroke-width:0.47182021;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3413-2-9"
+         width="40.548744"
+         height="26.23671"
+         x="139.35013"
+         y="165.32283"
+         rx="1.3229166"
+         ry="1.3229166" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';fill:#204a87;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="140.87848"
+         y="169.36453"
+         id="text3415-7-3"><tspan
+           style="font-size:3.70416665px;line-height:1.25;fill:#204a87;stroke-width:0.26458331pt"
+           sodipodi:role="line"
+           id="tspan3417-0-1"
+           x="140.87848"
+           y="169.36453">videoconvert</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3421-9-9"
+         width="13.113226"
+         height="8.9607048"
+         x="139.34859"
+         y="173.96138" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="142.51755"
+         y="179.42813"
+         id="text3423-3-4"><tspan
+           sodipodi:role="line"
+           id="tspan3425-6-7"
+           x="142.51755"
+           y="179.42813"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">sink</tspan></text>
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:#729fcf;fill-opacity:1;fill-rule:nonzero;stroke:#204a87;stroke-width:0.46875;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="rect3429-0-8"
+         width="13.113226"
+         height="8.9607048"
+         x="166.77666"
+         y="173.96138" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         xml:space="preserve"
+         style="font-style:normal;font-weight:bold;font-size:3.17499995px;line-height:0%;font-family:'Bitstream Vera Sans';-inkscape-font-specification:'Bitstream Vera Sans Bold';fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458331pt;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="171.80336"
+         y="179.16394"
+         id="text3431-6-4"><tspan
+           sodipodi:role="line"
+           id="tspan3433-2-5"
+           x="171.80336"
+           y="179.16394"
+           style="font-size:2.64583325px;line-height:1.25;stroke-width:0.26458331pt">src</tspan></text>
+      <path
+         inkscape:connector-curvature="0"
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="/home/luc/dev/mm/gstreamer-0.10.19.2/docs/manual/hello-world.png"
+         style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#204a87;stroke-width:0.55832195;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:3.28930068;stroke-opacity:1;marker-end:url(#Arrow2Mendq-9-1)"
+         d="m 180.01467,178.4471 h 9.78959"
+         id="path6089-0-0"
+         sodipodi:nodetypes="cc" />
+    </g>
+  </g>
+</svg>
