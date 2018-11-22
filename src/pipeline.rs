@@ -4,6 +4,7 @@ use gst::{self, prelude::*, BinExt};
 use gst_video;
 use gtk;
 
+use std::cell::RefCell;
 use std::error;
 use std::ops;
 use std::rc::{Rc, Weak};
@@ -12,7 +13,7 @@ use fragile;
 
 use chrono::prelude::*;
 
-use settings::SnapshotFormat;
+use settings::{RecordFormat, SnapshotFormat};
 use utils;
 
 // Our refcounted pipeline struct for containing all the media state we have to carry around.
@@ -33,7 +34,9 @@ impl ops::Deref for Pipeline {
 
 pub struct PipelineInner {
     pipeline: gst::Pipeline,
+    tee: gst::Element,
     sink: gst::Element,
+    recording_bin: RefCell<Option<gst::Bin>>,
 }
 
 // Weak reference to our pipeline struct
@@ -53,8 +56,9 @@ impl Pipeline {
         // Create a new GStreamer pipeline that captures from the default video source, which is
         // usually a camera, converts the output to RGB if needed and then passes it to a GTK video
         // sink
-        let pipeline =
-            gst::parse_launch("autovideosrc ! queue ! videoconvert ! gtksink name=sink")?;
+        let pipeline = gst::parse_launch(
+            "autovideosrc ! tee name=tee ! queue ! videoconvert ! gtksink name=sink",
+        )?;
 
         // Upcast to a gst::Pipeline as the above function could've also returned an arbitrary
         // gst::Element if a different string was passed
@@ -62,10 +66,38 @@ impl Pipeline {
             .downcast::<gst::Pipeline>()
             .expect("Couldn't downcast pipeline");
 
-        // Retrieve sink element from the pipeline for later use
+        // Retrieve sink and tee elements from the pipeline for later use
+        let tee = pipeline.get_by_name("tee").expect("No tee found");
         let sink = pipeline.get_by_name("sink").expect("No sink found");
 
-        let pipeline = Pipeline(Rc::new(PipelineInner { pipeline, sink }));
+        // XXX: Workaround for a bug on macOS
+        //
+        // When recording is started, the source could potentially reconfigure itself.
+        // Unfortunately this causes the camera source on macOS to fail completely instead.
+        // To prevent this we drop all Reconfigure events so that the source never tries to
+        // reconfigure.
+        {
+            let sinkpad = tee.get_static_pad("sink").expect("tee has no sinkpad");
+            sinkpad.add_probe(gst::PadProbeType::EVENT_UPSTREAM, |_pad, info| {
+                match info.data {
+                    Some(gst::PadProbeData::Event(ref ev))
+                        if ev.get_type() == gst::EventType::Reconfigure =>
+                    {
+                        return gst::PadProbeReturn::Drop;
+                    }
+                    _ => (),
+                }
+
+                gst::PadProbeReturn::Ok
+            });
+        }
+
+        let pipeline = Pipeline(Rc::new(PipelineInner {
+            pipeline,
+            sink,
+            tee,
+            recording_bin: RefCell::new(None),
+        }));
 
         // Install a message handler on the pipeline's bus to catch errors
         let bus = pipeline.pipeline.get_bus().expect("Pipeline had no bus");
@@ -190,6 +222,84 @@ impl Pipeline {
         });
 
         Ok(())
+    }
+
+    // Start recording to the configured location
+    pub fn start_recording(&self) -> Result<(), Box<dyn error::Error>> {
+        let settings = utils::load_settings();
+
+        let (bin_description, extension) = match settings.record_format {
+            RecordFormat::H264Mp4 => ("queue ! videoconvert ! x264enc tune=zerolatency ! video/x-h264,profile=baseline ! mp4mux ! filesink name=sink", "mp4"),
+            RecordFormat::Vp8WebM => ("queue ! videoconvert ! vp8enc deadline=1 ! webmmux ! filesink name=sink", "webm"),
+        };
+
+        let bin = match gst::parse_bin_from_description(bin_description, true) {
+            Err(err) => {
+                return Err(format!("Failed to create recording pipeline: {}", err).into());
+            }
+            Ok(bin) => bin,
+        };
+
+        // Get our file sink element by its name and set the location where to write the recording
+        let sink = bin
+            .get_by_name("sink")
+            .expect("Recording bin has no sink element");
+        let mut filename = settings.record_directory.clone();
+        let now = Local::now();
+        filename.push(format!(
+            "{}.{}",
+            now.format("Recording %Y-%m-%d %H-%M-%S"),
+            extension
+        ));
+
+        // All strings in GStreamer are UTF8, we need to convert the path to UTF8 which in theory
+        // can fail
+        sink.set_property("location", &(filename.to_str().unwrap()))
+            .expect("Filesink had no location property");
+
+        // First try setting the recording bin to playing: if this fails we know this before it
+        // potentially interferred with the other part of the pipeline
+        if let Err(_) = bin.set_state(gst::State::Playing).into_result() {
+            return Err("Failed to start recording".into());
+        }
+
+        // Add the bin to the pipeline. This would only fail if there was already a bin with the
+        // same name, which we ensured can't happen
+        self.pipeline
+            .add(&bin)
+            .expect("Failed to add recording bin");
+
+        // Get our tee element by name, request a new source pad from it and then link that to our
+        // recording bin to actually start receiving data
+        let srcpad = self
+            .tee
+            .get_request_pad("src_%u")
+            .expect("Failed to request new pad from tee");
+        let sinkpad = bin
+            .get_static_pad("sink")
+            .expect("Failed to get sink pad from recording bin");
+
+        // If linking fails, we just undo what we did above
+        if let Err(err) = srcpad.link(&sinkpad).into_result() {
+            // This might fail but we don't care anymore: we're in an error path
+            let _ = self.pipeline.remove(&bin);
+            let _ = bin.set_state(gst::State::Null);
+
+            return Err(format!("Failed to link recording bin: {}", err)
+                .as_str()
+                .into());
+        }
+
+        *self.recording_bin.borrow_mut() = Some(bin);
+
+        println!("Recording to {}", filename.display());
+
+        Ok(())
+    }
+
+    // Stop recording if any recording was currently ongoing
+    pub fn stop_recording(&self) {
+        println!("stop recording");
     }
 
     // Here we handle all message we get from the GStreamer pipeline. These are notifications sent

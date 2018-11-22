@@ -1,10 +1,11 @@
 use gio::{self, prelude::*, MenuExt};
 use gtk::{self, prelude::*};
 
-use app::SnapshotState;
+use app::{RecordState, SnapshotState};
 
 pub struct HeaderBar {
     snapshot: gtk::ToggleButton,
+    record: gtk::ToggleButton,
 }
 
 // Create headerbar for the application
@@ -49,15 +50,37 @@ impl HeaderBar {
         // Place the snapshot button on the left
         header_bar.pack_start(&snapshot_button);
 
+        // Create record button and let it trigger the record action
+        let record_button = gtk::ToggleButton::new();
+        let record_button_image = gtk::Image::new_from_icon_name("media-record", 1);
+        record_button.set_image(&record_button_image);
+
+        record_button.connect_toggled(|record_button| {
+            let app = gio::Application::get_default().expect("No default application");
+
+            let action = app
+                .lookup_action("record")
+                .expect("Snapshot action not found");
+            action.change_state(&RecordState::from(record_button.get_active()).into());
+        });
+
+        // Place the record button on the left, right of the snapshot button
+        header_bar.pack_start(&record_button);
+
         // Insert the headerbar as titlebar into the window
         window.set_titlebar(&header_bar);
 
         HeaderBar {
             snapshot: snapshot_button,
+            record: record_button,
         }
     }
 
     pub fn set_snapshot_active(&self, active: bool) {
         self.snapshot.set_active(active);
+    }
+
+    pub fn set_record_active(&self, active: bool) {
+        self.record.set_active(active);
     }
 }

@@ -129,6 +129,36 @@ impl From<SnapshotState> for glib::Variant {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum RecordState {
+    Idle,
+    Recording,
+}
+
+impl<'a> From<&'a glib::Variant> for RecordState {
+    fn from(v: &glib::Variant) -> RecordState {
+        v.get::<bool>().expect("Invalid record state type").into()
+    }
+}
+
+impl From<bool> for RecordState {
+    fn from(v: bool) -> RecordState {
+        match v {
+            false => RecordState::Idle,
+            true => RecordState::Recording,
+        }
+    }
+}
+
+impl From<RecordState> for glib::Variant {
+    fn from(v: RecordState) -> glib::Variant {
+        match v {
+            RecordState::Idle => false.to_variant(),
+            RecordState::Recording => true.to_variant(),
+        }
+    }
+}
+
 impl App {
     fn new(application: &gtk::Application) -> Result<App, Box<dyn error::Error>> {
         // Here build the UI but don't show it yet
@@ -313,6 +343,21 @@ impl App {
         }
     }
 
+    // When the record button is clicked it triggers the record action, which will call this.
+    // We have to start or stop recording here
+    fn on_record_state_changed(&self, new_state: RecordState) {
+        // Start/stop recording based on button active'ness
+        match new_state {
+            RecordState::Recording => {
+                if let Err(err) = self.pipeline.start_recording() {
+                    eprintln!("Failed to start recording: {}", err);
+                    self.header_bar.set_record_active(false);
+                }
+            }
+            RecordState::Idle => self.pipeline.stop_recording(),
+        }
+    }
+
     // Create our application actions here
     //
     // These are connected to our buttons and can be triggered by the buttons, as well as remotely
@@ -349,5 +394,18 @@ impl App {
             action.set_state(state);
         });
         application.add_action(&snapshot);
+
+        // record action: changes state between true/false
+        let record = gio::SimpleAction::new_stateful("record", None, &RecordState::Idle.into());
+        let weak_app = self.downgrade();
+        record.connect_change_state(move |action, state| {
+            let app = upgrade_weak!(weak_app);
+            let state = state.as_ref().expect("No state provided");
+            app.on_record_state_changed(state.into());
+
+            // Let the action store the new state
+            action.set_state(state);
+        });
+        application.add_action(&record);
     }
 }

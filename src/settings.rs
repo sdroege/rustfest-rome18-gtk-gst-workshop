@@ -36,6 +36,42 @@ impl Default for SnapshotFormat {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
+pub enum RecordFormat {
+    H264Mp4,
+    Vp8WebM,
+}
+
+impl<'a> From<&'a str> for RecordFormat {
+    fn from(s: &'a str) -> Self {
+        match s.to_lowercase().as_str() {
+            "h264/mp4" => RecordFormat::H264Mp4,
+            "vp8/webm" => RecordFormat::Vp8WebM,
+            _ => panic!("unsupported output format"),
+        }
+    }
+}
+
+impl From<Option<String>> for RecordFormat {
+    fn from(s: Option<String>) -> Self {
+        if let Some(s) = s {
+            match s.to_lowercase().as_str() {
+                "h264/mp4" => RecordFormat::H264Mp4,
+                "vp8/webm" => RecordFormat::Vp8WebM,
+                _ => panic!("unsupported output format"),
+            }
+        } else {
+            RecordFormat::default()
+        }
+    }
+}
+
+impl Default for RecordFormat {
+    fn default() -> Self {
+        RecordFormat::H264Mp4
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Settings {
     // By default, the user's picture directory.
@@ -44,6 +80,11 @@ pub struct Settings {
     pub snapshot_format: SnapshotFormat,
     // Timer length in seconds.
     pub timer_length: u32,
+
+    // By default, the user's video directory.
+    pub record_directory: PathBuf,
+    // Format to use for recording videos.
+    pub record_format: RecordFormat,
 }
 
 impl Default for Settings {
@@ -53,6 +94,9 @@ impl Default for Settings {
                 .unwrap_or_else(|| PathBuf::from(".")),
             snapshot_format: SnapshotFormat::default(),
             timer_length: 3,
+            record_directory: glib::get_user_special_dir(glib::UserDirectory::Videos)
+                .unwrap_or_else(|| PathBuf::from(".")),
+            record_format: RecordFormat::default(),
         }
     }
 }
@@ -93,6 +137,8 @@ struct SettingsDialogInner {
     snapshot_directory_chooser: gtk::FileChooserButton,
     snapshot_format: gtk::ComboBoxText,
     timer_entry: gtk::SpinButton,
+    record_directory_chooser: gtk::FileChooserButton,
+    record_format: gtk::ComboBoxText,
 }
 
 impl SettingsDialog {
@@ -113,6 +159,14 @@ impl SettingsDialog {
                 }),
             snapshot_format: SnapshotFormat::from(self.snapshot_format.get_active_text()),
             timer_length: self.timer_entry.get_value_as_int() as _,
+            record_directory: self
+                .record_directory_chooser
+                .get_filename()
+                .unwrap_or_else(|| {
+                    glib::get_user_special_dir(glib::UserDirectory::Videos)
+                        .unwrap_or_else(|| PathBuf::from("."))
+                }),
+            record_format: RecordFormat::from(self.record_format.get_active_text()),
         };
 
         utils::save_settings(&settings);
@@ -199,6 +253,37 @@ pub fn show_settings_dialog(application: &gtk::Application) {
     grid.attach(&timer_label, 0, 2, 1, 1);
     grid.attach(&timer_entry, 1, 2, 3, 1);
 
+    // File chooser for selecting the record directory plus the label
+    // next to it
+    let record_directory_label = gtk::Label::new("Record directory");
+    let record_directory_chooser = gtk::FileChooserButton::new(
+        "Pick a directory to save records",
+        gtk::FileChooserAction::SelectFolder,
+    );
+
+    record_directory_label.set_halign(gtk::Align::Start);
+    record_directory_chooser.set_filename(settings.record_directory);
+
+    grid.attach(&record_directory_label, 0, 3, 1, 1);
+    grid.attach(&record_directory_chooser, 1, 3, 3, 1);
+
+    // Record format combobox plus the label next to it
+    let format_label = gtk::Label::new("Record format");
+    let record_format = gtk::ComboBoxText::new();
+
+    format_label.set_halign(gtk::Align::Start);
+
+    record_format.append_text("H264/MP4");
+    record_format.append_text("VP8/WebM");
+    record_format.set_active(match settings.record_format {
+        RecordFormat::H264Mp4 => 0,
+        RecordFormat::Vp8WebM => 1,
+    });
+    record_format.set_hexpand(true);
+
+    grid.attach(&format_label, 0, 4, 1, 1);
+    grid.attach(&record_format, 1, 4, 3, 1);
+
     // Put the grid into the dialog's content area
     let content_area = dialog.get_content_area();
     content_area.pack_start(&grid, true, true, 0);
@@ -208,6 +293,8 @@ pub fn show_settings_dialog(application: &gtk::Application) {
         snapshot_directory_chooser,
         snapshot_format,
         timer_entry,
+        record_directory_chooser,
+        record_format,
     }));
 
     // Finally connect to all kinds of change notification signals for the different UI widgets.
@@ -228,6 +315,20 @@ pub fn show_settings_dialog(application: &gtk::Application) {
 
     let settings_dialog_weak = settings_dialog.downgrade();
     settings_dialog.timer_entry.connect_value_changed(move |_| {
+        let settings_dialog = upgrade_weak!(settings_dialog_weak);
+        settings_dialog.save_settings();
+    });
+
+    let settings_dialog_weak = settings_dialog.downgrade();
+    settings_dialog
+        .record_directory_chooser
+        .connect_file_set(move |_| {
+            let settings_dialog = upgrade_weak!(settings_dialog_weak);
+            settings_dialog.save_settings();
+        });
+
+    let settings_dialog_weak = settings_dialog.downgrade();
+    settings_dialog.record_format.connect_changed(move |_| {
         let settings_dialog = upgrade_weak!(settings_dialog_weak);
         settings_dialog.save_settings();
     });
