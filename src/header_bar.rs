@@ -21,6 +21,7 @@ impl HeaderBar {
         // Create the menu model with the menu items. These directly activate our application
         // actions by their name
         let main_menu_model = gio::Menu::new();
+        main_menu_model.append("Settings", "app.settings");
         main_menu_model.append("About", "app.about");
         main_menu.set_menu_model(&main_menu_model);
 

@@ -7,11 +7,17 @@ extern crate gstreamer as gst;
 extern crate fragile;
 
 #[macro_use]
+extern crate serde;
+extern crate serde_any;
+
+#[macro_use]
 mod macros;
 mod about_dialog;
 mod app;
 mod header_bar;
 mod pipeline;
+mod settings;
+mod utils;
 
 use gio::prelude::*;
 

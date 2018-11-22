@@ -5,6 +5,7 @@ use gtk::{self, prelude::*};
 use about_dialog::show_about_dialog;
 use header_bar::HeaderBar;
 use pipeline::Pipeline;
+use settings::show_settings_dialog;
 
 use std::cell::RefCell;
 use std::error;
@@ -155,6 +156,16 @@ impl App {
     //
     // These are connected to our buttons and can be triggered by the buttons, as well as remotely
     fn create_actions(&self, application: &gtk::Application) {
+        // When activated, show a settings dialog
+        let settings = gio::SimpleAction::new("settings", None);
+        let weak_application = application.downgrade();
+        settings.connect_activate(move |_action, _parameter| {
+            let application = upgrade_weak!(weak_application);
+
+            show_settings_dialog(&application);
+        });
+        application.add_action(&settings);
+
         // about action: when activated it will show an about dialog
         let about = gio::SimpleAction::new("about", None);
         let weak_application = application.downgrade();
