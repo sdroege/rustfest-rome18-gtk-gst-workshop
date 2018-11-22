@@ -1,114 +1,38 @@
 use settings::RecordFormat;
 use settings::SnapshotFormat;
-use App;
 
-use utils::{load_settings, show_error_dialog};
+use utils::load_settings;
 
 use chrono::prelude::*;
 
-use gtk;
-use gtk::prelude::*;
-
-use gst;
-use gst::prelude::*;
-use gst::BinExt;
-use gst::MessageView;
+use gst::{self, prelude::*, BinExt};
 use gst_video;
 
 use std::error;
 use std::fs::File;
 
-impl App {
-    // Here we handle all message we get from the GStreamer pipeline. These are
-    // notifications sent from GStreamer, including errors that happend at
-    // runtime.
-    fn on_pipeline_message(&self, msg: &gst::MessageRef) {
-        // A message can contain various kinds of information but
-        // here we are only interested in errors so far
-        match msg.view() {
-            MessageView::Error(err) => {
-                show_error_dialog(
-                    true,
-                    format!(
-                        "Error from {:?}: {} ({:?})",
-                        err.get_src().map(|s| s.get_path_string()),
-                        err.get_error(),
-                        err.get_debug()
-                    )
-                    .as_str(),
-                );
-            }
-            MessageView::Application(msg) => match msg.get_structure() {
-                // Here we can send ourselves warning messages from any thread and show them
-                // to the user in the UI in case something goes wrong
-                Some(s) if s.get_name() == "warning" => {
-                    let text = s.get::<&str>("text").expect("Warning message without text");
-                    show_error_dialog(false, text);
-                }
-                _ => (),
-            },
-            MessageView::Element(msg) => {
-                // Catch the end-of-stream messages from our filesink. Because the other sink,
-                // gtksink, will never receive end-of-stream we will never get a normal
-                // end-of-stream message from the bus.
-                //
-                // The normal end-of-stream message would only be sent once *all*
-                // sinks had their end-of-stream message posted.
-                match msg.get_structure() {
-                    Some(s) if s.get_name() == "GstBinForwarded" => {
-                        // The forwarded, original message from the bin is stored in the
-                        // message field of its structure
-                        let msg = s
-                            .get::<gst::Message>("message")
-                            .expect("Failed to get forwarded message");
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
-                        if let MessageView::Eos(..) = msg.view() {
-                            let inner = self.0.borrow();
+#[derive(Clone)]
+pub struct Pipeline(Rc<PipelineInner>);
 
-                            // Get our pipeline and the recording bin
-                            let pipeline = match inner.pipeline {
-                                Some(ref pipeline) => pipeline.clone(),
-                                None => return,
-                            };
-                            let bin = match msg
-                                .get_src()
-                                .and_then(|src| src.clone().downcast::<gst::Element>().ok())
-                            {
-                                Some(src) => src,
-                                None => return,
-                            };
+struct PipelineInner {
+    pipeline: gst::Pipeline,
+    tee: gst::Element,
+    sink: gst::Element,
+    recording_bin: RefCell<Option<gst::Bin>>,
+}
 
-                            // And then asynchronously remove it and set its state to Null
-                            async!(pipeline => |pipeline| {
-                                // Ignore if the bin was not in the pipeline anymore for whatever
-                                // reason. It's not a problem
-                                let _ = pipeline.remove(&bin);
-
-                                if let Err(err) = bin.set_state(gst::State::Null).into_result() {
-                                    let bus = pipeline.get_bus().expect("Pipeline has no bus");
-                                    let _ = bus.post(
-                                        &gst::Message::new_application(
-                                            gst::Structure::builder("warning")
-                                                .field(
-                                                    "text",
-                                                    &format!("Failed to stop recording: {}", err),
-                                                )
-                                                .build(),
-                                        )
-                                        .build(),
-                                    );
-                                }
-                            });
-                        }
-                    }
-                    _ => (),
-                }
-            }
-            _ => (),
-        };
+pub struct PipelineWeak(Weak<PipelineInner>);
+impl PipelineWeak {
+    pub fn upgrade(&self) -> Option<Pipeline> {
+        self.0.upgrade().map(Pipeline)
     }
+}
 
-    pub fn create_pipeline(&self) -> Result<(gst::Pipeline, gtk::Widget), Box<dyn error::Error>> {
+impl Pipeline {
+    pub fn new() -> Result<Self, Box<dyn error::Error>> {
         // Create a new GStreamer pipeline that captures from the default video source,
         // which is usually a camera, converts the output to RGB if needed and then passes
         // it to a GTK video sink
@@ -126,8 +50,18 @@ impl App {
         // aggregate first
         pipeline.set_property_message_forward(true);
 
+        let tee = pipeline.get_by_name("tee").expect("No tee found");
+        let sink = pipeline.get_by_name("sink").expect("No sink found");
+
+        let pipeline = Pipeline(Rc::new(PipelineInner {
+            pipeline,
+            tee,
+            sink,
+            recording_bin: RefCell::new(None),
+        }));
+
         // Install a message handler on the pipeline's bus to catch errors
-        let bus = pipeline.get_bus().expect("Pipeline had no bus");
+        let bus = pipeline.0.pipeline.get_bus().expect("Pipeline had no bus");
 
         // GStreamer is thread-safe and it is possible to attach
         // bus watches from any thread, which are then nonetheless
@@ -138,61 +72,53 @@ impl App {
         // As we are on the main thread and the closure will be called
         // on the main thread, this will not cause a panic and is perfectly
         // safe.
-        let app_weak = fragile::Fragile::new(self.downgrade());
+        let pipeline_weak = fragile::Fragile::new(pipeline.downgrade());
         bus.add_watch(move |_bus, msg| {
-            let app_weak = app_weak.get();
-            let app = upgrade_weak!(app_weak, glib::Continue(false));
+            let pipeline_weak = pipeline_weak.get();
+            let pipeline = upgrade_weak!(pipeline_weak, glib::Continue(false));
 
-            app.on_pipeline_message(msg);
+            pipeline.on_pipeline_message(msg);
 
             glib::Continue(true)
         });
 
-        // Get the GTK video sink and retrieve the video display widget from it
-        let sink = pipeline
-            .get_by_name("sink")
-            .expect("Pipeline had no sink element");
-        let widget_value = sink
-            .get_property("widget")
-            .expect("Sink had no widget property");
-        let widget = widget_value
-            .get::<gtk::Widget>()
-            .expect("Sink's widget propery was of the wrong type");
-
-        Ok((pipeline, widget))
+        Ok(pipeline)
     }
 
-    pub fn start_recording(&self, record_button: &gtk::ToggleButton) {
-        // If we have no pipeline (can't really happen) just return
-        let pipeline = match self.0.borrow().pipeline {
-            Some(ref pipeline) => pipeline.clone(),
-            None => return,
-        };
+    pub fn get_widget(&self) -> gtk::Widget {
+        // Get the GTK video sink and retrieve the video display widget from it
+        let widget_value = self
+            .0
+            .sink
+            .get_property("widget")
+            .expect("Sink had no widget property");
 
+        widget_value
+            .get::<gtk::Widget>()
+            .expect("Sink's widget propery was of the wrong type")
+    }
+
+    pub fn start(&self) -> Result<gst::StateChangeSuccess, gst::StateChangeError> {
+        // This has no effect if called multiple times
+        self.0.pipeline.set_state(gst::State::Playing).into_result()
+    }
+
+    pub fn stop(&self) -> Result<gst::StateChangeSuccess, gst::StateChangeError> {
+        // TODO: If a recording is currently running we should stop that first
+        self.0.pipeline.set_state(gst::State::Null).into_result()
+    }
+
+    pub fn start_recording(&self) -> Result<(), Box<dyn error::Error>> {
         let settings = load_settings();
 
-        // If we already have a record-bin (i.e. we still finish the previous one)
-        // just return for now and deactivate the button again
-        if pipeline.get_by_name("record-bin").is_some() {
-            record_button.set_state_flags(
-                record_button.get_state_flags() & !gtk::StateFlags::CHECKED,
-                true,
-            );
-            return;
-        }
-
         let (bin_description, extension) = match settings.record_format {
-            RecordFormat::H264Mp4 => ("name=record-bin queue ! videoconvert ! x264enc ! video/x-h264,profile=baseline ! mp4mux ! filesink name=sink", "mp4"),
-            RecordFormat::Vp8WebM => ("name=record-bin queue ! videoconvert ! vp8enc ! webmmux ! filesink name=sink", "webm"),
+            RecordFormat::H264Mp4 => ("queue ! videoconvert ! x264enc ! video/x-h264,profile=baseline ! mp4mux ! filesink name=sink", "mp4"),
+            RecordFormat::Vp8WebM => ("queue ! videoconvert ! vp8enc ! webmmux ! filesink name=sink", "webm"),
         };
 
         let bin = match gst::parse_bin_from_description(bin_description, true) {
             Err(err) => {
-                show_error_dialog(
-                    false,
-                    format!("Failed to create recording pipeline: {}", err).as_str(),
-                );
-                return;
+                return Err(format!("Failed to create recording pipeline: {}", err).into());
             }
             Ok(bin) => bin,
         };
@@ -218,23 +144,21 @@ impl App {
         // we know this before it potentially interferred with the other
         // part of the pipeline
         if let Err(_) = bin.set_state(gst::State::Playing).into_result() {
-            show_error_dialog(
-                false,
-                "Failed to start recording",
-            );
-            return;
+            return Err("Failed to start recording".into());
         }
 
         // Add the bin to the pipeline. This would only fail if there was already
         // a bin with the same name, which we ensured can't happen
-        pipeline.add(&bin).expect("Failed to add recording bin");
+        self.0
+            .pipeline
+            .add(&bin)
+            .expect("Failed to add recording bin");
 
         // Get our tee element by name, request a new source pad from it and
         // then link that to our recording bin to actually start receiving data
-        let tee = pipeline
-            .get_by_name("tee")
-            .expect("Pipeline had no tee element");
-        let srcpad = tee
+        let srcpad = self
+            .0
+            .tee
             .get_request_pad("src_%u")
             .expect("Failed to request new pad from tee");
         let sinkpad = bin
@@ -243,30 +167,29 @@ impl App {
 
         // If linking fails, we just undo what we did above
         if let Err(err) = srcpad.link(&sinkpad).into_result() {
-            show_error_dialog(
-                false,
-                format!("Failed to link recording bin: {}", err).as_str(),
-            );
             // This might fail but we don't care anymore: we're in an error path
-            let _ = pipeline.remove(&bin);
+            let _ = self.0.pipeline.remove(&bin);
             let _ = bin.set_state(gst::State::Null);
+
+            return Err(format!("Failed to link recording bin: {}", err)
+                .as_str()
+                .into());
         }
 
+        *self.0.recording_bin.borrow_mut() = Some(bin);
+
         println!("Recording to {}", filename.display());
+
+        Ok(())
     }
 
     pub fn stop_recording(&self) {
-        // If we have no pipeline (can't really happen) just return
-        let pipeline = match self.0.borrow().pipeline {
-            Some(ref pipeline) => pipeline.clone(),
-            None => return,
-        };
-
         // Get our recording bin, if it does not exist then nothing
         // has to be stopped actually. This shouldn't really happen
-        let bin = pipeline
-            .get_by_name("record-bin")
-            .expect("Pipeline had no recording bin");
+        let bin = match self.0.recording_bin.borrow_mut().take() {
+            None => return,
+            Some(bin) => bin,
+        };
 
         // Get the source pad of the tee that is connected to the recording bin
         let sinkpad = bin
@@ -318,14 +241,8 @@ impl App {
     }
 
     // Take a snapshot of the current image and write it to the configured location
-    pub fn take_snapshot(&self) {
+    pub fn take_snapshot(&self) -> Result<(), Box<dyn error::Error>> {
         let settings = load_settings();
-
-        // If we have no pipeline there's nothing to snapshot
-        let pipeline = match self.0.borrow().pipeline {
-            None => return,
-            Some(ref pipeline) => pipeline.clone(),
-        };
 
         // Create the GStreamer caps for the output format
         let (caps, extension) = match settings.snapshot_format {
@@ -333,14 +250,15 @@ impl App {
             SnapshotFormat::PNG => (gst::Caps::new_simple("image/png", &[]), "png"),
         };
 
-        let sink = pipeline.get_by_name("sink").expect("sink not found");
-        let last_sample = sink
+        let last_sample = self
+            .0
+            .sink
             .get_property("last-sample")
             .expect("Sink had no last-sample property");
         let last_sample = match last_sample.get::<gst::Sample>() {
             None => {
                 // We have no sample to store yet
-                return;
+                return Ok(());
             }
             Some(sample) => sample,
         };
@@ -356,16 +274,12 @@ impl App {
 
         let mut file = match File::create(&filename) {
             Err(err) => {
-                show_error_dialog(
-                    false,
-                    format!(
-                        "Failed to create snapshot file {}: {}",
-                        filename.display(),
-                        err
-                    )
-                    .as_str(),
-                );
-                return;
+                return Err(format!(
+                    "Failed to create snapshot file {}: {}",
+                    filename.display(),
+                    err
+                )
+                .into());
             }
             Ok(file) => file,
         };
@@ -373,7 +287,7 @@ impl App {
         // Then convert it from whatever format we got to PNG or JPEG as requested
         // and write it out
         println!("Writing snapshot to {}", filename.display());
-        let bus = pipeline.get_bus().expect("Pipeline has no bus");
+        let bus = self.0.pipeline.get_bus().expect("Pipeline has no bus");
         gst_video::convert_sample_async(&last_sample, &caps, 5 * gst::SECOND, move |res| {
             use std::io::Write;
 
@@ -415,5 +329,98 @@ impl App {
                 );
             }
         });
+
+        Ok(())
+    }
+
+    // Here we handle all message we get from the GStreamer pipeline. These are
+    // notifications sent from GStreamer, including errors that happend at
+    // runtime. These are all handled from the application thread and show
+    // dialogs as needed or shut down the application
+    fn on_pipeline_message(&self, msg: &gst::MessageRef) {
+        use gst::MessageView;
+        use utils::show_error_dialog;
+
+        // A message can contain various kinds of information but
+        // here we are only interested in errors so far
+        match msg.view() {
+            MessageView::Error(err) => {
+                show_error_dialog(
+                    true,
+                    format!(
+                        "Error from {:?}: {} ({:?})",
+                        err.get_src().map(|s| s.get_path_string()),
+                        err.get_error(),
+                        err.get_debug()
+                    )
+                    .as_str(),
+                );
+            }
+            MessageView::Application(msg) => match msg.get_structure() {
+                // Here we can send ourselves warning messages from any thread and show them
+                // to the user in the UI in case something goes wrong
+                Some(s) if s.get_name() == "warning" => {
+                    let text = s.get::<&str>("text").expect("Warning message without text");
+                    show_error_dialog(false, text);
+                }
+                _ => (),
+            },
+            MessageView::Element(msg) => {
+                // Catch the end-of-stream messages from our filesink. Because the other sink,
+                // gtksink, will never receive end-of-stream we will never get a normal
+                // end-of-stream message from the bus.
+                //
+                // The normal end-of-stream message would only be sent once *all*
+                // sinks had their end-of-stream message posted.
+                match msg.get_structure() {
+                    Some(s) if s.get_name() == "GstBinForwarded" => {
+                        // The forwarded, original message from the bin is stored in the
+                        // message field of its structure
+                        let msg = s
+                            .get::<gst::Message>("message")
+                            .expect("Failed to get forwarded message");
+
+                        if let MessageView::Eos(..) = msg.view() {
+                            let bin = match msg
+                                .get_src()
+                                .and_then(|src| src.clone().downcast::<gst::Element>().ok())
+                            {
+                                Some(src) => src,
+                                None => return,
+                            };
+
+                            // And then asynchronously remove it and set its state to Null
+                            let pipeline = &self.0.pipeline;
+                            async!(pipeline => |pipeline| {
+                                // Ignore if the bin was not in the pipeline anymore for whatever
+                                // reason. It's not a problem
+                                let _ = pipeline.remove(&bin);
+
+                                if let Err(err) = bin.set_state(gst::State::Null).into_result() {
+                                    let bus = pipeline.get_bus().expect("Pipeline has no bus");
+                                    let _ = bus.post(
+                                        &gst::Message::new_application(
+                                            gst::Structure::builder("warning")
+                                                .field(
+                                                    "text",
+                                                    &format!("Failed to stop recording: {}", err),
+                                                )
+                                                .build(),
+                                        )
+                                        .build(),
+                                    );
+                                }
+                            });
+                        }
+                    }
+                    _ => (),
+                }
+            }
+            _ => (),
+        };
+    }
+
+    pub fn downgrade(&self) -> PipelineWeak {
+        PipelineWeak(Rc::downgrade(&self.0))
     }
 }

@@ -19,9 +19,9 @@ mod macros;
 
 mod about_dialog;
 pub mod app;
-mod gstreamer;
 mod headerbar;
 mod overlay;
+mod pipeline;
 pub mod settings;
 pub mod utils;
 
@@ -32,37 +32,16 @@ use std::error;
 
 use app::App;
 
-pub const APPLICATION_NAME: &'static str = "com.github.rustfest";
+pub const APPLICATION_NAME: &str = "com.github.rustfest";
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     gst::init()?;
     let application = gtk::Application::new(APPLICATION_NAME, gio::ApplicationFlags::empty())?;
 
-    let app = App::new();
-
     // On application startup (of the main instance) we create
     // the actions and UI. A second process would not run this
-    let app_weak = app.downgrade();
-    application.connect_startup(move |application| {
-        let app = upgrade_weak!(app_weak);
-        app.on_startup(application);
-    });
-
-    // When the application is activated show the UI. This happens
-    // when the first process is started, and in the first process
-    // whenever a second process is started
-    let app_weak = app.downgrade();
-    application.connect_activate(move |_| {
-        let app = upgrade_weak!(app_weak);
-        app.on_activate();
-    });
-
-    // When the application is shut down, first shut down
-    // the GStreamer pipeline so that capturing can gracefully stop
-    let app_weak = app.downgrade();
-    application.connect_shutdown(move |_| {
-        let app = upgrade_weak!(app_weak);
-        app.on_shutdown();
+    application.connect_startup(|application| {
+        App::on_startup(application);
     });
 
     // And now run the application until the end

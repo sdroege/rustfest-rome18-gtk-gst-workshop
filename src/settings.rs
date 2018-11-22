@@ -1,4 +1,4 @@
-use gtk::prelude::*;
+use gtk::{self, prelude::*};
 
 use utils;
 
@@ -107,7 +107,7 @@ impl Default for Settings {
 }
 
 // Construct the settings dialog and ensure that the settings file exists and is loaded
-pub fn create_settings_dialog(parent: &Option<gtk::Window>) {
+pub fn create_settings_dialog(application: &gtk::Application) {
     let s = utils::get_settings_file_path();
 
     if !s.exists() {
@@ -135,7 +135,7 @@ pub fn create_settings_dialog(parent: &Option<gtk::Window>) {
     //
     let dialog = gtk::Dialog::new_with_buttons(
         Some("Snapshot settings"),
-        parent.as_ref(),
+        application.get_active_window().as_ref(),
         gtk::DialogFlags::MODAL,
         &[("Close", gtk::ResponseType::Close.into())],
     );

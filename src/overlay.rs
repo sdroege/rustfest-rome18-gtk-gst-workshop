@@ -1,16 +1,12 @@
 use gtk::{self, prelude::*};
 
 pub struct Overlay {
-    // Our overlay widget
-    pub container: gtk::Overlay,
     // The Countdown label... lift off!
-    pub label: gtk::Label,
-    // The container that will hold the gstreamer widget
-    content: gtk::Box,
+    label: gtk::Label,
 }
 
-impl Default for Overlay {
-    fn default() -> Self {
+impl Overlay {
+    pub fn new<W: gtk::ContainerExt, U: IsA<gtk::Widget>>(container: &W, content: &U) -> Self {
         // Create an overlay for showing the seconds until a snapshot
         // This is hidden while we're not doing a countdown
         let overlay = gtk::Overlay::new();
@@ -31,22 +27,19 @@ impl Default for Overlay {
         // Add the label to our overlay
         overlay.add_overlay(&label);
 
-        // A Box allows to place multiple widgets next to each other
-        // vertically or horizontally
-        let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        overlay.add(&content);
+        overlay.add(content);
 
-        Overlay {
-            container: overlay,
-            label,
-            content,
-        }
+        // Add ourselves to the container, i.e. our window
+        container.add(&overlay);
+
+        Overlay { label }
     }
-}
 
-impl Overlay {
-    // Add the widget to the content container
-    pub fn initialize_content<P: IsA<gtk::Widget>>(&self, widget: &P) {
-        self.content.pack_start(widget, true, true, 0);
+    pub fn set_label_visible(&self, visible: bool) {
+        self.label.set_visible(visible);
+    }
+
+    pub fn set_label_text(&self, text: &str) {
+        self.label.set_text(text);
     }
 }
