@@ -111,6 +111,13 @@ impl Pipeline {
         self.pipeline.set_state(gst::State::Null).into_result()
     }
 
+    // Take a snapshot of the current image and write it to the configured location
+    pub fn take_snapshot(&self) -> Result<(), Box<dyn error::Error>> {
+        println!("take snapshot");
+
+        Ok(())
+    }
+
     // Here we handle all message we get from the GStreamer pipeline. These are notifications sent
     // from GStreamer, including errors that happend at runtime.
     //

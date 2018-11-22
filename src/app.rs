@@ -1,16 +1,28 @@
+use gdk;
 use gio::{self, prelude::*};
 use glib;
 use gtk::{self, prelude::*};
 
 use about_dialog::show_about_dialog;
 use header_bar::HeaderBar;
+use overlay::Overlay;
 use pipeline::Pipeline;
 use settings::show_settings_dialog;
+use utils;
 
 use std::cell::RefCell;
 use std::error;
 use std::ops;
 use std::rc::{Rc, Weak};
+
+// Here we specify our custom, application specific CSS styles for various widgets
+const STYLE: &str = "
+#countdown-label {
+    background-color: rgba(192, 192, 192, 0.8);
+    color: black;
+    font-size: 42pt;
+    font-weight: bold;
+}";
 
 // Our refcounted application struct for containing all the state we have to carry around.
 //
@@ -47,11 +59,74 @@ impl AppWeak {
 pub struct AppInner {
     main_window: gtk::ApplicationWindow,
 
-    // We will use this at a later time
-    #[allow(dead_code)]
     header_bar: HeaderBar,
+    overlay: Overlay,
 
     pipeline: Pipeline,
+
+    timer: RefCell<Option<SnapshotTimer>>,
+}
+
+// Helper struct for the snapshot timer
+//
+// Allows counting down and removes the timeout source on Drop
+struct SnapshotTimer {
+    remaining: u32,
+    // This needs to be Option because we need to be able to take
+    // the value out in Drop::drop() removing the timeout id
+    timeout_id: Option<glib::source::SourceId>,
+}
+
+impl SnapshotTimer {
+    fn new(remaining: u32, timeout_id: glib::SourceId) -> Self {
+        Self {
+            remaining,
+            timeout_id: Some(timeout_id),
+        }
+    }
+
+    fn tick(&mut self) -> u32 {
+        assert!(self.remaining > 0);
+        self.remaining -= 1;
+
+        self.remaining
+    }
+}
+
+impl Drop for SnapshotTimer {
+    fn drop(&mut self) {
+        glib::source::source_remove(self.timeout_id.take().expect("No timeout id"));
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum SnapshotState {
+    Idle,
+    TimerRunning,
+}
+
+impl<'a> From<&'a glib::Variant> for SnapshotState {
+    fn from(v: &glib::Variant) -> SnapshotState {
+        v.get::<bool>().expect("Invalid snapshot state type").into()
+    }
+}
+
+impl From<bool> for SnapshotState {
+    fn from(v: bool) -> SnapshotState {
+        match v {
+            false => SnapshotState::Idle,
+            true => SnapshotState::TimerRunning,
+        }
+    }
+}
+
+impl From<SnapshotState> for glib::Variant {
+    fn from(v: SnapshotState) -> glib::Variant {
+        match v {
+            SnapshotState::Idle => false.to_variant(),
+            SnapshotState::TimerRunning => true.to_variant(),
+        }
+    }
 }
 
 impl App {
@@ -71,12 +146,16 @@ impl App {
         let pipeline =
             Pipeline::new().map_err(|err| format!("Error creating pipeline: {:?}", err))?;
 
-        window.add(&pipeline.get_widget());
+        // Create an overlay for showing the seconds until a snapshot
+        // This is hidden while we're not doing a countdown
+        let overlay = Overlay::new(&window, &pipeline.get_widget());
 
         let app = App(Rc::new(AppInner {
             main_window: window,
             header_bar,
+            overlay,
             pipeline,
+            timer: RefCell::new(None),
         }));
 
         // Create the application actions
@@ -91,6 +170,18 @@ impl App {
     }
 
     pub fn on_startup(application: &gtk::Application) {
+        // Load our custom CSS style-sheet and set it as the application specific style-sheet for
+        // this whole application
+        let provider = gtk::CssProvider::new();
+        provider
+            .load_from_data(STYLE.as_bytes())
+            .expect("Failed to load CSS");
+        gtk::StyleContext::add_provider_for_screen(
+            &gdk::Screen::get_default().expect("Error initializing gtk css provider."),
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+
         // Create application and error out if that fails for whatever reason
         let app = match App::new(application) {
             Ok(app) => app,
@@ -152,6 +243,76 @@ impl App {
         let _ = self.pipeline.stop();
     }
 
+    // When the snapshot button is clicked it triggers the snapshot action, which calls this
+    // function here. We have to stop an existing timer here, start a new timer or immediately
+    // snapshot.
+    fn on_snapshot_state_changed(&self, new_state: SnapshotState) {
+        let settings = utils::load_settings();
+
+        // Stop snapshot timer, if any, and return
+        if new_state == SnapshotState::Idle {
+            let _ = self.timer.borrow_mut().take();
+            self.overlay.set_label_visible(false);
+
+            return;
+        }
+
+        if settings.timer_length == 0 {
+            // Take a snapshot immediately if there's no timer length or start the timer
+
+            // Set the togglebutton unchecked again immediately
+            self.header_bar.set_snapshot_active(false);
+
+            if let Err(err) = self.pipeline.take_snapshot() {
+                eprintln!("Failed to take snapshot: {}", err);
+            }
+        } else {
+            // Start a snapshot timer
+
+            // Make the overlay visible, remember how much we have to count down and start our
+            // timeout for the timer
+            self.overlay.set_label_visible(true);
+            self.overlay
+                .set_label_text(&settings.timer_length.to_string());
+
+            let app_weak = self.downgrade();
+            // The closure is called every 1000ms
+            let timeout_id = gtk::timeout_add(1000, move || {
+                let app = upgrade_weak!(app_weak, glib::Continue(false));
+
+                let remaining = app
+                    .timer
+                    .borrow_mut()
+                    .as_mut()
+                    .map(|t| t.tick())
+                    .unwrap_or(0);
+
+                if remaining == 0 {
+                    // Set the togglebutton unchecked again and make the overlay text invisible
+                    app.overlay.set_label_visible(false);
+
+                    // Remove timer
+                    let _ = app.timer.borrow_mut().take();
+
+                    // This directly calls the surrounding function again and then removes the
+                    // timer
+                    app.header_bar.set_snapshot_active(false);
+
+                    if let Err(err) = app.pipeline.take_snapshot() {
+                        eprintln!("Failed to take snapshot: {}", err);
+                    }
+
+                    glib::Continue(false)
+                } else {
+                    app.overlay.set_label_text(&remaining.to_string());
+                    glib::Continue(true)
+                }
+            });
+
+            *self.timer.borrow_mut() = Some(SnapshotTimer::new(settings.timer_length, timeout_id));
+        }
+    }
+
     // Create our application actions here
     //
     // These are connected to our buttons and can be triggered by the buttons, as well as remotely
@@ -174,5 +335,19 @@ impl App {
             show_about_dialog(&application);
         });
         application.add_action(&about);
+
+        // snapshot action: changes state between true/false
+        let snapshot =
+            gio::SimpleAction::new_stateful("snapshot", None, &SnapshotState::Idle.into());
+        let weak_app = self.downgrade();
+        snapshot.connect_change_state(move |action, state| {
+            let app = upgrade_weak!(weak_app);
+            let state = state.as_ref().expect("No state provided");
+            app.on_snapshot_state_changed(state.into());
+
+            // Let the action store the new state
+            action.set_state(state);
+        });
+        application.add_action(&snapshot);
     }
 }

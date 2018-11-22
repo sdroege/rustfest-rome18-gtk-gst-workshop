@@ -1,3 +1,4 @@
+extern crate gdk;
 extern crate gio;
 extern crate glib;
 extern crate gtk;
@@ -15,6 +16,7 @@ mod macros;
 mod about_dialog;
 mod app;
 mod header_bar;
+mod overlay;
 mod pipeline;
 mod settings;
 mod utils;

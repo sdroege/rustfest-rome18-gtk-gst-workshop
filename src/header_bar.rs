@@ -1,7 +1,11 @@
-use gio::{self, MenuExt};
+use gio::{self, prelude::*, MenuExt};
 use gtk::{self, prelude::*};
 
-pub struct HeaderBar {}
+use app::SnapshotState;
+
+pub struct HeaderBar {
+    snapshot: gtk::ToggleButton,
+}
 
 // Create headerbar for the application
 //
@@ -28,9 +32,32 @@ impl HeaderBar {
         // And place it on the right (end) side of the header bar
         header_bar.pack_end(&main_menu);
 
+        // Create snapshot button and let it trigger the snapshot action
+        let snapshot_button = gtk::ToggleButton::new();
+        let snapshot_button_image = gtk::Image::new_from_icon_name("camera-photo-symbolic", 1);
+        snapshot_button.set_image(&snapshot_button_image);
+
+        snapshot_button.connect_toggled(|snapshot_button| {
+            let app = gio::Application::get_default().expect("No default application");
+
+            let action = app
+                .lookup_action("snapshot")
+                .expect("Snapshot action not found");
+            action.change_state(&SnapshotState::from(snapshot_button.get_active()).into());
+        });
+
+        // Place the snapshot button on the left
+        header_bar.pack_start(&snapshot_button);
+
         // Insert the headerbar as titlebar into the window
         window.set_titlebar(&header_bar);
 
-        HeaderBar {}
+        HeaderBar {
+            snapshot: snapshot_button,
+        }
+    }
+
+    pub fn set_snapshot_active(&self, active: bool) {
+        self.snapshot.set_active(active);
     }
 }
