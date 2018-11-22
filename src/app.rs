@@ -270,6 +270,8 @@ impl App {
     // Called when the application shuts down. We drop our app struct here
     fn on_shutdown(self) {
         // This might fail but as we shut down right now anyway this doesn't matter
+        // TODO: If a recording is currently running we would like to finish that first
+        // before quitting the pipeline and shutting down the pipeline.
         let _ = self.pipeline.stop();
     }
 

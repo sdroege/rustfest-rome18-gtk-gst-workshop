@@ -66,6 +66,10 @@ impl Pipeline {
             .downcast::<gst::Pipeline>()
             .expect("Couldn't downcast pipeline");
 
+        // Request that the pipeline forwards us all messages, even those that it would otherwise
+        // aggregate first
+        pipeline.set_property_message_forward(true);
+
         // Retrieve sink and tee elements from the pipeline for later use
         let tee = pipeline.get_by_name("tee").expect("No tee found");
         let sink = pipeline.get_by_name("sink").expect("No sink found");
@@ -299,7 +303,59 @@ impl Pipeline {
 
     // Stop recording if any recording was currently ongoing
     pub fn stop_recording(&self) {
-        println!("stop recording");
+        // Get our recording bin, if it does not exist then nothing has to be stopped actually.
+        // This shouldn't really happen
+        let bin = match self.recording_bin.borrow_mut().take() {
+            None => return,
+            Some(bin) => bin,
+        };
+
+        // Get the source pad of the tee that is connected to the recording bin
+        let sinkpad = bin
+            .get_static_pad("sink")
+            .expect("Failed to get sink pad from recording bin");
+        let srcpad = match sinkpad.get_peer() {
+            Some(peer) => peer,
+            None => return,
+        };
+
+        println!("Stopping recording");
+
+        // Once the tee source pad is idle and we wouldn't interfere with any data flow, unlink the
+        // tee and the recording bin and finalize the recording bin by sending it an end-of-stream
+        // event
+        //
+        // Once the end-of-stream event is handled by the whole recording bin, we get an
+        // end-of-stream message from it in the message handler and the shut down the recording bin
+        // and remove it from the pipeline
+        //
+        // The closure below might be called directly from the main UI thread here or at a later
+        // time from a GStreamer streaming thread
+        srcpad.add_probe(gst::PadProbeType::IDLE, move |srcpad, _| {
+            // Get the parent of the tee source pad, i.e. the tee itself
+            let tee = srcpad
+                .get_parent()
+                .and_then(|parent| parent.downcast::<gst::Element>().ok())
+                .expect("Failed to get tee source pad parent");
+
+            // Unlink the tee source pad and then release it
+            //
+            // If unlinking fails we don't care, just make sure that the
+            // pad is actually released
+            let _ = srcpad.unlink(&sinkpad);
+            tee.release_request_pad(srcpad);
+
+            // Asynchronously send the end-of-stream event to the sinkpad as this might block for a
+            // while and our closure here might've been called from the main UI thread
+            let sinkpad = sinkpad.clone();
+            async!(bin => |_| {
+                sinkpad.send_event(gst::Event::new_eos().build());
+            });
+
+            // Don't block the pad but remove the probe to let everything
+            // continue as normal
+            gst::PadProbeReturn::Remove
+        });
     }
 
     // Here we handle all message we get from the GStreamer pipeline. These are notifications sent
@@ -320,6 +376,46 @@ impl Pipeline {
                     err.get_debug()
                 );
                 gio::Application::get_default().map(|app| app.quit());
+            }
+            MessageView::Element(msg) => {
+                // Catch the end-of-stream messages from our filesink. Because the other sink,
+                // gtksink, will never receive end-of-stream we will never get a normal
+                // end-of-stream message from the bus.
+                //
+                // The normal end-of-stream message would only be sent once *all* sinks had their
+                // end-of-stream message posted.
+                match msg.get_structure() {
+                    Some(s) if s.get_name() == "GstBinForwarded" => {
+                        // The forwarded, original message from the bin is stored in the message
+                        // field of its structure
+                        let msg = s
+                            .get::<gst::Message>("message")
+                            .expect("Failed to get forwarded message");
+
+                        if let MessageView::Eos(..) = msg.view() {
+                            let bin = match msg
+                                .get_src()
+                                .and_then(|src| src.clone().downcast::<gst::Element>().ok())
+                            {
+                                Some(src) => src,
+                                None => return,
+                            };
+
+                            // And then asynchronously remove it and set its state to Null
+                            let pipeline = &self.pipeline;
+                            async!(pipeline => |pipeline| {
+                                // Ignore if the bin was not in the pipeline anymore for whatever
+                                // reason. It's not a problem
+                                let _ = pipeline.remove(&bin);
+
+                                if let Err(err) = bin.set_state(gst::State::Null).into_result() {
+                                    eprintln!("Failed to stop recording: {}", err);
+                                }
+                            });
+                        }
+                    }
+                    _ => (),
+                }
             }
             _ => (),
         };
