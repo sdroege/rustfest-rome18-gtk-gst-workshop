@@ -8,16 +8,24 @@ use chrono::prelude::*;
 use gst::{self, prelude::*, BinExt};
 use gst_video;
 
+use std::cell::RefCell;
 use std::error;
 use std::fs::File;
-
-use std::cell::RefCell;
+use std::ops;
 use std::rc::{Rc, Weak};
 
 #[derive(Clone)]
 pub struct Pipeline(Rc<PipelineInner>);
 
-struct PipelineInner {
+impl ops::Deref for Pipeline {
+    type Target = PipelineInner;
+
+    fn deref(&self) -> &PipelineInner {
+        &*self.0
+    }
+}
+
+pub struct PipelineInner {
     pipeline: gst::Pipeline,
     tee: gst::Element,
     sink: gst::Element,
@@ -61,7 +69,7 @@ impl Pipeline {
         }));
 
         // Install a message handler on the pipeline's bus to catch errors
-        let bus = pipeline.0.pipeline.get_bus().expect("Pipeline had no bus");
+        let bus = pipeline.pipeline.get_bus().expect("Pipeline had no bus");
 
         // GStreamer is thread-safe and it is possible to attach
         // bus watches from any thread, which are then nonetheless
@@ -88,7 +96,6 @@ impl Pipeline {
     pub fn get_widget(&self) -> gtk::Widget {
         // Get the GTK video sink and retrieve the video display widget from it
         let widget_value = self
-            .0
             .sink
             .get_property("widget")
             .expect("Sink had no widget property");
@@ -100,12 +107,12 @@ impl Pipeline {
 
     pub fn start(&self) -> Result<gst::StateChangeSuccess, gst::StateChangeError> {
         // This has no effect if called multiple times
-        self.0.pipeline.set_state(gst::State::Playing).into_result()
+        self.pipeline.set_state(gst::State::Playing).into_result()
     }
 
     pub fn stop(&self) -> Result<gst::StateChangeSuccess, gst::StateChangeError> {
         // TODO: If a recording is currently running we should stop that first
-        self.0.pipeline.set_state(gst::State::Null).into_result()
+        self.pipeline.set_state(gst::State::Null).into_result()
     }
 
     pub fn start_recording(&self) -> Result<(), Box<dyn error::Error>> {
@@ -149,15 +156,13 @@ impl Pipeline {
 
         // Add the bin to the pipeline. This would only fail if there was already
         // a bin with the same name, which we ensured can't happen
-        self.0
-            .pipeline
+        self.pipeline
             .add(&bin)
             .expect("Failed to add recording bin");
 
         // Get our tee element by name, request a new source pad from it and
         // then link that to our recording bin to actually start receiving data
         let srcpad = self
-            .0
             .tee
             .get_request_pad("src_%u")
             .expect("Failed to request new pad from tee");
@@ -168,7 +173,7 @@ impl Pipeline {
         // If linking fails, we just undo what we did above
         if let Err(err) = srcpad.link(&sinkpad).into_result() {
             // This might fail but we don't care anymore: we're in an error path
-            let _ = self.0.pipeline.remove(&bin);
+            let _ = self.pipeline.remove(&bin);
             let _ = bin.set_state(gst::State::Null);
 
             return Err(format!("Failed to link recording bin: {}", err)
@@ -176,7 +181,7 @@ impl Pipeline {
                 .into());
         }
 
-        *self.0.recording_bin.borrow_mut() = Some(bin);
+        *self.recording_bin.borrow_mut() = Some(bin);
 
         println!("Recording to {}", filename.display());
 
@@ -186,7 +191,7 @@ impl Pipeline {
     pub fn stop_recording(&self) {
         // Get our recording bin, if it does not exist then nothing
         // has to be stopped actually. This shouldn't really happen
-        let bin = match self.0.recording_bin.borrow_mut().take() {
+        let bin = match self.recording_bin.borrow_mut().take() {
             None => return,
             Some(bin) => bin,
         };
@@ -251,7 +256,6 @@ impl Pipeline {
         };
 
         let last_sample = self
-            .0
             .sink
             .get_property("last-sample")
             .expect("Sink had no last-sample property");
@@ -287,7 +291,7 @@ impl Pipeline {
         // Then convert it from whatever format we got to PNG or JPEG as requested
         // and write it out
         println!("Writing snapshot to {}", filename.display());
-        let bus = self.0.pipeline.get_bus().expect("Pipeline has no bus");
+        let bus = self.pipeline.get_bus().expect("Pipeline has no bus");
         gst_video::convert_sample_async(&last_sample, &caps, 5 * gst::SECOND, move |res| {
             use std::io::Write;
 
@@ -390,7 +394,7 @@ impl Pipeline {
                             };
 
                             // And then asynchronously remove it and set its state to Null
-                            let pipeline = &self.0.pipeline;
+                            let pipeline = &self.pipeline;
                             async!(pipeline => |pipeline| {
                                 // Ignore if the bin was not in the pipeline anymore for whatever
                                 // reason. It's not a problem

@@ -10,12 +10,21 @@ use utils;
 
 use std::cell::RefCell;
 use std::error;
+use std::ops;
 use std::rc::{Rc, Weak};
 
 // Our refcounted application struct for containing all the
 // state we have to carry around
 #[derive(Clone)]
 pub struct App(Rc<AppInner>);
+
+impl ops::Deref for App {
+    type Target = AppInner;
+
+    fn deref(&self) -> &AppInner {
+        &*self.0
+    }
+}
 
 pub struct AppWeak(Weak<AppInner>);
 
@@ -163,17 +172,16 @@ impl App {
         // is activated. This means that when a second instance
         // is started, the window of the first instance will be
         // brought to the foreground
-        self.0.main_window.show_all();
+        self.main_window.show_all();
 
         // Have to call this instead of present() because of
         // https://gitlab.gnome.org/GNOME/gtk/issues/624
-        self.0
-            .main_window
+        self.main_window
             .present_with_time((glib::get_monotonic_time() / 1000) as u32);
 
         // Once the UI is shown, start the GStreamer pipeline. If
         // an error happens, we immediately shut down
-        if let Err(err) = self.0.pipeline.start() {
+        if let Err(err) = self.pipeline.start() {
             utils::show_error_dialog(
                 true,
                 format!("Failed to set pipeline to playing: {:?}", err).as_str(),
@@ -184,7 +192,7 @@ impl App {
     pub fn on_shutdown(self) {
         // This might fail but as we shut down right now anyway this
         // doesn't matter
-        let _ = self.0.pipeline.stop();
+        let _ = self.pipeline.stop();
     }
 
     fn connect_actions(&self, application: &gtk::Application) {
@@ -244,8 +252,8 @@ impl App {
 
         // Stop snapshot timer, if any, and return
         if !snapshot {
-            let _ = self.0.timer.borrow_mut().take();
-            self.0.overlay.set_label_visible(false);
+            let _ = self.timer.borrow_mut().take();
+            self.overlay.set_label_visible(false);
 
             return;
         }
@@ -255,9 +263,9 @@ impl App {
             // no timer length or start the timer
 
             // Set the togglebutton unchecked again immediately
-            self.0.header_bar.set_snapshot_active(false);
+            self.header_bar.set_snapshot_active(false);
 
-            if let Err(err) = self.0.pipeline.take_snapshot() {
+            if let Err(err) = self.pipeline.take_snapshot() {
                 utils::show_error_dialog(
                     false,
                     format!("Failed to take snapshot: {}", err).as_str(),
@@ -268,9 +276,8 @@ impl App {
 
             // Make the overlay visible, remember how much we have to count
             // down and start our timeout for the timer
-            self.0.overlay.set_label_visible(true);
-            self.0
-                .overlay
+            self.overlay.set_label_visible(true);
+            self.overlay
                 .set_label_text(&settings.timer_length.to_string());
 
             let app_weak = self.downgrade();
@@ -279,7 +286,6 @@ impl App {
                 let app = upgrade_weak!(app_weak, glib::Continue(false));
 
                 let remaining = app
-                    .0
                     .timer
                     .borrow_mut()
                     .as_mut()
@@ -289,16 +295,16 @@ impl App {
                 if remaining == 0 {
                     // Set the togglebutton unchecked again and make
                     // the overlay text invisible
-                    app.0.overlay.set_label_visible(false);
+                    app.overlay.set_label_visible(false);
 
                     // Remove timer
-                    let _ = app.0.timer.borrow_mut().take();
+                    let _ = app.timer.borrow_mut().take();
 
                     // This directly calls the surrounding function again
                     // and then removes the timer
-                    app.0.header_bar.set_snapshot_active(false);
+                    app.header_bar.set_snapshot_active(false);
 
-                    if let Err(err) = app.0.pipeline.take_snapshot() {
+                    if let Err(err) = app.pipeline.take_snapshot() {
                         utils::show_error_dialog(
                             false,
                             format!("Failed to take snapshot: {}", err).as_str(),
@@ -307,13 +313,12 @@ impl App {
 
                     glib::Continue(false)
                 } else {
-                    app.0.overlay.set_label_text(&remaining.to_string());
+                    app.overlay.set_label_text(&remaining.to_string());
                     glib::Continue(true)
                 }
             });
 
-            *self.0.timer.borrow_mut() =
-                Some(SnapshotTimer::new(settings.timer_length, timeout_id));
+            *self.timer.borrow_mut() = Some(SnapshotTimer::new(settings.timer_length, timeout_id));
         }
     }
 
@@ -321,15 +326,15 @@ impl App {
     fn on_record_state_changed(&self, record: bool) {
         // Start/stop recording based on button active'ness
         if record {
-            if let Err(err) = self.0.pipeline.start_recording() {
+            if let Err(err) = self.pipeline.start_recording() {
                 utils::show_error_dialog(
                     false,
                     format!("Failed to start recording: {}", err).as_str(),
                 );
-                self.0.header_bar.set_record_active(false);
+                self.header_bar.set_record_active(false);
             }
         } else {
-            self.0.pipeline.stop_recording();
+            self.pipeline.stop_recording();
         }
     }
 }
