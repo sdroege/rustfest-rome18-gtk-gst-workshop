@@ -4,12 +4,15 @@ extern crate glib;
 extern crate gtk;
 
 extern crate gstreamer as gst;
+extern crate gstreamer_video as gst_video;
 
 extern crate fragile;
 
 #[macro_use]
 extern crate serde;
 extern crate serde_any;
+
+extern crate chrono;
 
 #[macro_use]
 mod macros;

@@ -1,6 +1,7 @@
 use gio::{self, prelude::*};
 use glib;
 use gst::{self, prelude::*, BinExt};
+use gst_video;
 use gtk;
 
 use std::error;
@@ -8,6 +9,11 @@ use std::ops;
 use std::rc::{Rc, Weak};
 
 use fragile;
+
+use chrono::prelude::*;
+
+use settings::SnapshotFormat;
+use utils;
 
 // Our refcounted pipeline struct for containing all the media state we have to carry around.
 //
@@ -113,7 +119,75 @@ impl Pipeline {
 
     // Take a snapshot of the current image and write it to the configured location
     pub fn take_snapshot(&self) -> Result<(), Box<dyn error::Error>> {
-        println!("take snapshot");
+        use std::fs::File;
+
+        let settings = utils::load_settings();
+
+        // Create the GStreamer caps for the output format
+        let (caps, extension) = match settings.snapshot_format {
+            SnapshotFormat::JPEG => (gst::Caps::new_simple("image/jpeg", &[]), "jpg"),
+            SnapshotFormat::PNG => (gst::Caps::new_simple("image/png", &[]), "png"),
+        };
+
+        let last_sample = self
+            .sink
+            .get_property("last-sample")
+            .expect("Sink had no last-sample property");
+        let last_sample = match last_sample.get::<gst::Sample>() {
+            None => {
+                // We have no sample to store yet
+                return Ok(());
+            }
+            Some(sample) => sample,
+        };
+
+        // Create the filename and open the file writable
+        let mut filename = settings.snapshot_directory.clone();
+        let now = Local::now();
+        filename.push(format!(
+            "{}.{}",
+            now.format("Snapshot %Y-%m-%d %H-%M-%S"),
+            extension
+        ));
+
+        let mut file = match File::create(&filename) {
+            Err(err) => {
+                return Err(format!(
+                    "Failed to create snapshot file {}: {}",
+                    filename.display(),
+                    err
+                )
+                .into());
+            }
+            Ok(file) => file,
+        };
+
+        // Then convert it from whatever format we got to PNG or JPEG as requested and write it out
+        println!("Writing snapshot to {}", filename.display());
+        gst_video::convert_sample_async(&last_sample, &caps, 5 * gst::SECOND, move |res| {
+            use std::io::Write;
+
+            let sample = match res {
+                Err(err) => {
+                    eprintln!("Failed to convert sample: {}", err);
+                    return;
+                }
+                Ok(sample) => sample,
+            };
+
+            let buffer = sample.get_buffer().expect("Failed to get buffer");
+            let map = buffer
+                .map_readable()
+                .expect("Failed to map buffer readable");
+
+            if let Err(err) = file.write_all(&map) {
+                eprintln!(
+                    "Failed to write snapshot file {}: {}",
+                    filename.display(),
+                    err
+                );
+            }
+        });
 
         Ok(())
     }
