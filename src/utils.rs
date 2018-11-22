@@ -68,10 +68,9 @@ pub fn show_error_dialog(fatal: bool, text: &str) {
         .expect("No default application")
         .downcast::<gtk::Application>()
         .expect("Default application has wrong type");
-    let window = app.get_active_window();
 
     let dialog = gtk::MessageDialog::new(
-        window.as_ref(),
+        app.get_active_window().as_ref(),
         gtk::DialogFlags::MODAL,
         gtk::MessageType::Error,
         gtk::ButtonsType::Ok,
