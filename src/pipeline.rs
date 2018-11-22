@@ -1,4 +1,3 @@
-use gio::{self, prelude::*};
 use glib;
 use gst::{self, prelude::*, BinExt};
 use gst_video;
@@ -200,12 +199,15 @@ impl Pipeline {
 
         // Then convert it from whatever format we got to PNG or JPEG as requested and write it out
         println!("Writing snapshot to {}", filename.display());
+        let bus = self.pipeline.get_bus().expect("Pipeline has no bus");
         gst_video::convert_sample_async(&last_sample, &caps, 5 * gst::SECOND, move |res| {
             use std::io::Write;
 
             let sample = match res {
                 Err(err) => {
-                    eprintln!("Failed to convert sample: {}", err);
+                    let _ = bus.post(&Self::create_application_warning_message(
+                        format!("Failed to convert sample: {}", err).as_str(),
+                    ));
                     return;
                 }
                 Ok(sample) => sample,
@@ -217,11 +219,14 @@ impl Pipeline {
                 .expect("Failed to map buffer readable");
 
             if let Err(err) = file.write_all(&map) {
-                eprintln!(
-                    "Failed to write snapshot file {}: {}",
-                    filename.display(),
-                    err
-                );
+                let _ = bus.post(&Self::create_application_warning_message(
+                    format!(
+                        "Failed to write snapshot file {}: {}",
+                        filename.display(),
+                        err
+                    )
+                    .as_str(),
+                ));
             }
         });
 
@@ -369,14 +374,26 @@ impl Pipeline {
         // here we are only interested in errors so far
         match msg.view() {
             MessageView::Error(err) => {
-                eprintln!(
-                    "Error from {:?}: {} ({:?})",
-                    err.get_src().map(|s| s.get_path_string()),
-                    err.get_error(),
-                    err.get_debug()
+                utils::show_error_dialog(
+                    true,
+                    format!(
+                        "Error from {:?}: {} ({:?})",
+                        err.get_src().map(|s| s.get_path_string()),
+                        err.get_error(),
+                        err.get_debug()
+                    )
+                    .as_str(),
                 );
-                gio::Application::get_default().map(|app| app.quit());
             }
+            MessageView::Application(msg) => match msg.get_structure() {
+                // Here we can send ourselves messages from any thread and show them to the user in
+                // the UI in case something goes wrong
+                Some(s) if s.get_name() == "warning" => {
+                    let text = s.get::<&str>("text").expect("Warning message without text");
+                    utils::show_error_dialog(false, text);
+                }
+                _ => (),
+            },
             MessageView::Element(msg) => {
                 // Catch the end-of-stream messages from our filesink. Because the other sink,
                 // gtksink, will never receive end-of-stream we will never get a normal
@@ -409,7 +426,8 @@ impl Pipeline {
                                 let _ = pipeline.remove(&bin);
 
                                 if let Err(err) = bin.set_state(gst::State::Null).into_result() {
-                                    eprintln!("Failed to stop recording: {}", err);
+                                    let bus = pipeline.get_bus().expect("Pipeline has no bus");
+                                    let _ = bus.post(&Self::create_application_warning_message(format!("Failed to stop recording: {}", err).as_str()));
                                 }
                             });
                         }
@@ -419,5 +437,14 @@ impl Pipeline {
             }
             _ => (),
         };
+    }
+
+    fn create_application_warning_message(text: &str) -> gst::Message {
+        gst::Message::new_application(
+            gst::Structure::builder("warning")
+                .field("text", &text)
+                .build(),
+        )
+        .build()
     }
 }

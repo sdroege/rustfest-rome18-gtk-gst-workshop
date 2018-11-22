@@ -181,10 +181,14 @@ pub fn show_settings_dialog(application: &gtk::Application) {
         if let Some(parent_dir) = s.parent() {
             if !parent_dir.exists() {
                 if let Err(e) = create_dir_all(parent_dir) {
-                    eprintln!(
-                        "Error while trying to build settings snapshot_directory '{}': {:?}",
-                        parent_dir.display(),
-                        e
+                    utils::show_error_dialog(
+                        false,
+                        format!(
+                            "Error while trying to build settings snapshot_directory '{}': {}",
+                            parent_dir.display(),
+                            e
+                        )
+                        .as_str(),
                     );
                 }
             }

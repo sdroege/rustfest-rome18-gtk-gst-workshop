@@ -216,8 +216,10 @@ impl App {
         let app = match App::new(application) {
             Ok(app) => app,
             Err(err) => {
-                eprintln!("Error creating application: {:?}", err);
-                application.quit();
+                utils::show_error_dialog(
+                    true,
+                    format!("Error creating application: {}", err).as_str(),
+                );
                 return;
             }
         };
@@ -262,8 +264,10 @@ impl App {
         // Once the UI is shown, start the GStreamer pipeline. If
         // an error happens, we immediately shut down
         if let Err(err) = self.pipeline.start() {
-            eprintln!("Failed to set pipeline to playing: {:?}", err);
-            gio::Application::get_default().map(|app| app.quit());
+            utils::show_error_dialog(
+                true,
+                format!("Failed to set pipeline to playing: {}", err).as_str(),
+            );
         }
     }
 
@@ -296,7 +300,10 @@ impl App {
             self.header_bar.set_snapshot_active(false);
 
             if let Err(err) = self.pipeline.take_snapshot() {
-                eprintln!("Failed to take snapshot: {}", err);
+                utils::show_error_dialog(
+                    false,
+                    format!("Failed to take snapshot: {}", err).as_str(),
+                );
             }
         } else {
             // Start a snapshot timer
@@ -331,7 +338,10 @@ impl App {
                     app.header_bar.set_snapshot_active(false);
 
                     if let Err(err) = app.pipeline.take_snapshot() {
-                        eprintln!("Failed to take snapshot: {}", err);
+                        utils::show_error_dialog(
+                            false,
+                            format!("Failed to take snapshot: {}", err).as_str(),
+                        );
                     }
 
                     glib::Continue(false)
@@ -352,7 +362,10 @@ impl App {
         match new_state {
             RecordState::Recording => {
                 if let Err(err) = self.pipeline.start_recording() {
-                    eprintln!("Failed to start recording: {}", err);
+                    utils::show_error_dialog(
+                        false,
+                        format!("Failed to start recording: {}", err).as_str(),
+                    );
                     self.header_bar.set_record_active(false);
                 }
             }
