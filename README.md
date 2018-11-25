@@ -30,3 +30,9 @@ apt install libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
  * Set `GST_PLUGIN_SYSTEM_PATH` to `lib/gstreamer-1.0`
  * Set `XDG_DATA_DIRS` to include `share`
  
+## Documentation
+
+Docs for GTK+ and GStreamer Rust bindings are available at:
+
+ * https://gtk-rs.org/docs/gtk
+ * https://sdroege.github.io/rustdoc/gstreamer/gstreamer
