@@ -20,3 +20,13 @@ https://nirbheek.in/files/binaries/gstreamer/1.15.0.1/gtk/windows/gstreamer-1.0-
 ```
 apt install libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 ```
+
+## Setup
+
+### On non-Linux platforms
+
+ * Set `PKG_CONFIG_PATH` environment variable to the `lib/pkgconfig` directory
+ * Include the bin directory in your `PATH`
+ * Set `GST_PLUGIN_SYSTEM_PATH` to `lib/gstreamer-1.0`
+ * Set `XDG_DATA_DIRS` to include `share`
+ 
