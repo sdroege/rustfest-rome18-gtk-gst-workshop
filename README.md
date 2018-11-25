@@ -18,5 +18,5 @@ https://nirbheek.in/files/binaries/gstreamer/1.15.0.1/gtk/windows/gstreamer-1.0-
 ### Linux
 
 ```
-apt install libgtk-3-dev libgstreamer1.0-dev libgst-plugins-base1.0-dev
+apt install libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 ```
