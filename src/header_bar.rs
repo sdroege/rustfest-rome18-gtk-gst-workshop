@@ -41,10 +41,10 @@ impl HeaderBar {
         snapshot_button.connect_toggled(|snapshot_button| {
             let app = gio::Application::get_default().expect("No default application");
 
-            let action = app
-                .lookup_action("snapshot")
-                .expect("Snapshot action not found");
-            action.change_state(&SnapshotState::from(snapshot_button.get_active()).into());
+            app.change_action_state(
+                "snapshot",
+                &SnapshotState::from(snapshot_button.get_active()).into(),
+            );
         });
 
         // Place the snapshot button on the left
@@ -58,10 +58,10 @@ impl HeaderBar {
         record_button.connect_toggled(|record_button| {
             let app = gio::Application::get_default().expect("No default application");
 
-            let action = app
-                .lookup_action("record")
-                .expect("Snapshot action not found");
-            action.change_state(&RecordState::from(record_button.get_active()).into());
+            app.change_action_state(
+                "record",
+                &RecordState::from(record_button.get_active()).into(),
+            );
         });
 
         // Place the record button on the left, right of the snapshot button
