@@ -396,6 +396,18 @@ impl App {
         });
         application.add_action(&about);
 
+        // When activated, shuts down the application
+        let quit = gio::SimpleAction::new("quit", None);
+        let weak_application = application.downgrade();
+        quit.connect_activate(move |_action, _parameter| {
+            let application = upgrade_weak!(weak_application);
+            application.quit();
+        });
+        application.add_action(&quit);
+
+        // And add an accelerator for triggering the action on ctrl+q
+        application.set_accels_for_action("app.quit", &["<Primary>Q"]);
+
         // snapshot action: changes state between true/false
         let snapshot =
             gio::SimpleAction::new_stateful("snapshot", None, &SnapshotState::Idle.into());
