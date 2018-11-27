@@ -99,7 +99,7 @@ impl Drop for SnapshotTimer {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SnapshotState {
     Idle,
     TimerRunning,
@@ -129,7 +129,7 @@ impl From<SnapshotState> for glib::Variant {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RecordState {
     Idle,
     Recording,
@@ -157,6 +157,15 @@ impl From<RecordState> for glib::Variant {
             RecordState::Recording => true.to_variant(),
         }
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Action {
+    Quit,
+    Settings,
+    About,
+    Snapshot(SnapshotState),
+    Record(RecordState),
 }
 
 impl App {
@@ -189,7 +198,7 @@ impl App {
         }));
 
         // Create the application actions
-        app.create_actions(application);
+        Action::create(&app, &application);
 
         Ok(app)
     }
@@ -372,11 +381,24 @@ impl App {
             RecordState::Idle => self.pipeline.stop_recording(),
         }
     }
+}
+
+impl Action {
+    // The full action name as is used in e.g. menu models
+    pub fn full_name(self) -> &'static str {
+        match self {
+            Action::Quit => "app.quit",
+            Action::Settings => "app.settings",
+            Action::About => "app.about",
+            Action::Snapshot(_) => "app.snapshot",
+            Action::Record(_) => "app.record",
+        }
+    }
 
     // Create our application actions here
     //
     // These are connected to our buttons and can be triggered by the buttons, as well as remotely
-    fn create_actions(&self, application: &gtk::Application) {
+    fn create(app: &App, application: &gtk::Application) {
         // When activated, show a settings dialog
         let settings = gio::SimpleAction::new("settings", None);
         let weak_application = application.downgrade();
@@ -406,12 +428,12 @@ impl App {
         application.add_action(&quit);
 
         // And add an accelerator for triggering the action on ctrl+q
-        application.set_accels_for_action("app.quit", &["<Primary>Q"]);
+        application.set_accels_for_action(Action::Quit.full_name(), &["<Primary>Q"]);
 
         // snapshot action: changes state between true/false
         let snapshot =
             gio::SimpleAction::new_stateful("snapshot", None, &SnapshotState::Idle.into());
-        let weak_app = self.downgrade();
+        let weak_app = app.downgrade();
         snapshot.connect_change_state(move |action, state| {
             let app = upgrade_weak!(weak_app);
             let state = state.as_ref().expect("No state provided");
@@ -424,7 +446,7 @@ impl App {
 
         // record action: changes state between true/false
         let record = gio::SimpleAction::new_stateful("record", None, &RecordState::Idle.into());
-        let weak_app = self.downgrade();
+        let weak_app = app.downgrade();
         record.connect_change_state(move |action, state| {
             let app = upgrade_weak!(weak_app);
             let state = state.as_ref().expect("No state provided");
@@ -434,5 +456,16 @@ impl App {
             action.set_state(state);
         });
         application.add_action(&record);
+    }
+
+    // Triggers the provided action on the application
+    pub fn trigger<A: IsA<gio::Application> + gio::ActionGroupExt>(self, app: &A) {
+        match self {
+            Action::Quit => app.activate_action("quit", None),
+            Action::Settings => app.activate_action("settings", None),
+            Action::About => app.activate_action("about", None),
+            Action::Snapshot(new_state) => app.change_action_state("snapshot", &new_state.into()),
+            Action::Record(new_state) => app.change_action_state("record", &new_state.into()),
+        }
     }
 }

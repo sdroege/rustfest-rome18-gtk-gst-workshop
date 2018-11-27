@@ -1,7 +1,7 @@
 use gio::{self, prelude::*, MenuExt};
 use gtk::{self, prelude::*};
 
-use app::{RecordState, SnapshotState};
+use app::{Action, RecordState, SnapshotState};
 
 pub struct HeaderBar {
     snapshot: gtk::ToggleButton,
@@ -26,8 +26,8 @@ impl HeaderBar {
         // Create the menu model with the menu items. These directly activate our application
         // actions by their name
         let main_menu_model = gio::Menu::new();
-        main_menu_model.append("Settings", "app.settings");
-        main_menu_model.append("About", "app.about");
+        main_menu_model.append("Settings", Action::Settings.full_name());
+        main_menu_model.append("About", Action::About.full_name());
         main_menu.set_menu_model(&main_menu_model);
 
         // And place it on the right (end) side of the header bar
@@ -41,10 +41,7 @@ impl HeaderBar {
         snapshot_button.connect_toggled(|snapshot_button| {
             let app = gio::Application::get_default().expect("No default application");
 
-            app.change_action_state(
-                "snapshot",
-                &SnapshotState::from(snapshot_button.get_active()).into(),
-            );
+            Action::Snapshot(SnapshotState::from(snapshot_button.get_active())).trigger(&app);
         });
 
         // Place the snapshot button on the left
@@ -57,11 +54,7 @@ impl HeaderBar {
 
         record_button.connect_toggled(|record_button| {
             let app = gio::Application::get_default().expect("No default application");
-
-            app.change_action_state(
-                "record",
-                &RecordState::from(record_button.get_active()).into(),
-            );
+            Action::Record(RecordState::from(record_button.get_active())).trigger(&app);
         });
 
         // Place the record button on the left, right of the snapshot button
