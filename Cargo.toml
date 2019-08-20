@@ -3,17 +3,18 @@ name = "cameraview"
 version = "0.1.0"
 authors = ["Sebastian Dröge <sebastian@centricular.com>", "Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 license = "MIT"
+edition = "2018"
 
 [features]
-v1_10 = ["gstreamer/v1_10"]
+v1_10 = ["gst/v1_10"]
 
 [dependencies]
-glib = "0.6"
-gio = "0.5"
-gdk = "0.9"
-gtk = { version = "0.5", features = ["v3_14"] }
-gstreamer = "0.12"
-gstreamer-video = "0.12"
+glib = "0.8"
+gio = "0.7"
+gdk = "0.11"
+gtk = "0.7"
+gst = { package = "gstreamer", version = "0.14" }
+gst-video = { package = "gstreamer-video", version = "0.14" }
 fragile = "0.3"
 serde = "1.0"
 serde_any = "0.5"

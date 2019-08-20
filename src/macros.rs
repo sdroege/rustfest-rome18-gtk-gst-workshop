@@ -16,7 +16,7 @@ macro_rules! upgrade_weak {
 // Macro for asynchronously calling some code with an element
 //
 // When using GStreamer >= 1.10 this will make use of a thread-pool
-macro_rules! async {
+macro_rules! call_async {
     ($x:ident => |$($p:tt),*| $body:expr) => {{
         #[cfg(feature = "v1_10")]
         {

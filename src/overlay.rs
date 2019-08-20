@@ -6,11 +6,11 @@ pub struct Overlay {
 }
 
 impl Overlay {
-    pub fn new<W: gtk::ContainerExt, U: IsA<gtk::Widget>>(container: &W, content: &U) -> Self {
+    pub fn new<W: IsA<gtk::Container>, U: IsA<gtk::Widget>>(container: &W, content: &U) -> Self {
         // Create an overlay for showing the seconds until a snapshot This is hidden while we're
         // not doing a countdown
         let overlay = gtk::Overlay::new();
-        let label = gtk::Label::new("0");
+        let label = gtk::Label::new(Some("0"));
 
         // Our label should have the countdown-label style from the stylesheet
         //

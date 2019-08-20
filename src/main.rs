@@ -1,19 +1,3 @@
-extern crate gdk;
-extern crate gio;
-extern crate glib;
-extern crate gtk;
-
-extern crate gstreamer as gst;
-extern crate gstreamer_video as gst_video;
-
-extern crate fragile;
-
-#[macro_use]
-extern crate serde;
-extern crate serde_any;
-
-extern crate chrono;
-
 #[macro_use]
 mod macros;
 mod about_dialog;
@@ -29,7 +13,7 @@ use gio::prelude::*;
 use std::env::args;
 use std::error;
 
-use app::App;
+use crate::app::App;
 
 // Unique application name to identify it
 //
@@ -42,7 +26,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     // Create an application with our name and the default flags. By default, applications can only
     // have a single instance and any second instance will only activate the first one again
-    let application = gtk::Application::new(APPLICATION_NAME, gio::ApplicationFlags::empty())?;
+    let application =
+        gtk::Application::new(Some(APPLICATION_NAME), gio::ApplicationFlags::empty())?;
 
     // On application startup (of the first instance) we create our application. A second instance
     // would not run this

@@ -6,8 +6,8 @@ use std::path::PathBuf;
 
 use serde_any;
 
-use settings::Settings;
-use APPLICATION_NAME;
+use crate::settings::Settings;
+use crate::APPLICATION_NAME;
 
 // Get the default path for the settings file
 pub fn get_settings_file_path() -> PathBuf {
@@ -64,6 +64,8 @@ pub fn show_error_dialog(fatal: bool, text: &str) {
     );
 
     dialog.connect_response(move |dialog, _| {
+        let app = gio::Application::get_default().expect("No default application");
+
         dialog.destroy();
 
         if fatal {

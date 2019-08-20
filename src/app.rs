@@ -3,12 +3,12 @@ use gio::{self, prelude::*};
 use glib;
 use gtk::{self, prelude::*};
 
-use about_dialog::show_about_dialog;
-use header_bar::HeaderBar;
-use overlay::Overlay;
-use pipeline::Pipeline;
-use settings::show_settings_dialog;
-use utils;
+use crate::about_dialog::show_about_dialog;
+use crate::header_bar::HeaderBar;
+use crate::overlay::Overlay;
+use crate::pipeline::Pipeline;
+use crate::settings::show_settings_dialog;
+use crate::utils;
 
 use std::cell::RefCell;
 use std::error;
@@ -436,7 +436,7 @@ impl Action {
         let weak_app = app.downgrade();
         snapshot.connect_change_state(move |action, state| {
             let app = upgrade_weak!(weak_app);
-            let state = state.as_ref().expect("No state provided");
+            let state = state.expect("No state provided");
             app.on_snapshot_state_changed(state.into());
 
             // Let the action store the new state
@@ -449,7 +449,7 @@ impl Action {
         let weak_app = app.downgrade();
         record.connect_change_state(move |action, state| {
             let app = upgrade_weak!(weak_app);
-            let state = state.as_ref().expect("No state provided");
+            let state = state.expect("No state provided");
             app.on_record_state_changed(state.into());
 
             // Let the action store the new state
@@ -459,7 +459,7 @@ impl Action {
     }
 
     // Triggers the provided action on the application
-    pub fn trigger<A: IsA<gio::Application> + gio::ActionGroupExt>(self, app: &A) {
+    pub fn trigger<A: IsA<gio::Application> + IsA<gio::ActionGroup>>(self, app: &A) {
         match self {
             Action::Quit => app.activate_action("quit", None),
             Action::Settings => app.activate_action("settings", None),

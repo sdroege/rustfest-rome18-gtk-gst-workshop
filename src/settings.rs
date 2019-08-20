@@ -1,13 +1,15 @@
 use glib;
 use gtk::{self, prelude::*};
 
-use utils;
+use crate::utils;
 
 use std::cell::RefCell;
 use std::fs::create_dir_all;
 use std::ops;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub enum SnapshotFormat {
@@ -16,8 +18,8 @@ pub enum SnapshotFormat {
 }
 
 // Convenience for converting from the strings in the combobox
-impl From<Option<String>> for SnapshotFormat {
-    fn from(s: Option<String>) -> Self {
+impl From<Option<glib::GString>> for SnapshotFormat {
+    fn from(s: Option<glib::GString>) -> Self {
         if let Some(s) = s {
             match s.to_lowercase().as_str() {
                 "jpeg" => SnapshotFormat::JPEG,
@@ -52,8 +54,8 @@ impl<'a> From<&'a str> for RecordFormat {
     }
 }
 
-impl From<Option<String>> for RecordFormat {
-    fn from(s: Option<String>) -> Self {
+impl From<Option<glib::GString>> for RecordFormat {
+    fn from(s: Option<glib::GString>) -> Self {
         if let Some(s) = s {
             match s.to_lowercase().as_str() {
                 "h264/mp4" => RecordFormat::H264Mp4,
@@ -202,7 +204,7 @@ pub fn show_settings_dialog(application: &gtk::Application) {
         Some("WebCam Viewer settings"),
         application.get_active_window().as_ref(),
         gtk::DialogFlags::MODAL,
-        &[("Close", gtk::ResponseType::Close.into())],
+        &[("Close", gtk::ResponseType::Close)],
     );
 
     // All the UI widgets are going to be stored in a grid
@@ -213,7 +215,7 @@ pub fn show_settings_dialog(application: &gtk::Application) {
 
     // File chooser for selecting the snapshot directory plus the label
     // next to it
-    let snapshot_directory_label = gtk::Label::new("Snapshot directory");
+    let snapshot_directory_label = gtk::Label::new(Some("Snapshot directory"));
     let snapshot_directory_chooser = gtk::FileChooserButton::new(
         "Pick a directory to save snapshots",
         gtk::FileChooserAction::SelectFolder,
@@ -226,7 +228,7 @@ pub fn show_settings_dialog(application: &gtk::Application) {
     grid.attach(&snapshot_directory_chooser, 1, 0, 3, 1);
 
     // Snapshot format combobox plus the label next to it
-    let format_label = gtk::Label::new("Snapshot format");
+    let format_label = gtk::Label::new(Some("Snapshot format"));
     let snapshot_format = gtk::ComboBoxText::new();
 
     format_label.set_halign(gtk::Align::Start);
@@ -236,8 +238,8 @@ pub fn show_settings_dialog(application: &gtk::Application) {
     snapshot_format.append_text("JPEG");
     snapshot_format.append_text("PNG");
     snapshot_format.set_active(match settings.snapshot_format {
-        SnapshotFormat::JPEG => 0,
-        SnapshotFormat::PNG => 1,
+        SnapshotFormat::JPEG => Some(0),
+        SnapshotFormat::PNG => Some(1),
     });
     snapshot_format.set_hexpand(true);
 
@@ -245,7 +247,7 @@ pub fn show_settings_dialog(application: &gtk::Application) {
     grid.attach(&snapshot_format, 1, 1, 3, 1);
 
     // Snapshot timer length spin button plus the label next to it
-    let timer_label = gtk::Label::new("Timer length (in seconds)");
+    let timer_label = gtk::Label::new(Some("Timer length (in seconds)"));
     // We allow 0 to 15 seconds, in 1 second steps
     let timer_entry = gtk::SpinButton::new_with_range(0., 15., 1.);
 
@@ -259,7 +261,7 @@ pub fn show_settings_dialog(application: &gtk::Application) {
 
     // File chooser for selecting the record directory plus the label
     // next to it
-    let record_directory_label = gtk::Label::new("Record directory");
+    let record_directory_label = gtk::Label::new(Some("Record directory"));
     let record_directory_chooser = gtk::FileChooserButton::new(
         "Pick a directory to save records",
         gtk::FileChooserAction::SelectFolder,
@@ -272,7 +274,7 @@ pub fn show_settings_dialog(application: &gtk::Application) {
     grid.attach(&record_directory_chooser, 1, 3, 3, 1);
 
     // Record format combobox plus the label next to it
-    let format_label = gtk::Label::new("Record format");
+    let format_label = gtk::Label::new(Some("Record format"));
     let record_format = gtk::ComboBoxText::new();
 
     format_label.set_halign(gtk::Align::Start);
@@ -280,8 +282,8 @@ pub fn show_settings_dialog(application: &gtk::Application) {
     record_format.append_text("H264/MP4");
     record_format.append_text("VP8/WebM");
     record_format.set_active(match settings.record_format {
-        RecordFormat::H264Mp4 => 0,
-        RecordFormat::Vp8WebM => 1,
+        RecordFormat::H264Mp4 => Some(0),
+        RecordFormat::Vp8WebM => Some(1),
     });
     record_format.set_hexpand(true);
 

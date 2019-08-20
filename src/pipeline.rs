@@ -1,5 +1,5 @@
 use glib;
-use gst::{self, prelude::*, BinExt};
+use gst::{self, prelude::*};
 use gst_video;
 use gtk;
 
@@ -12,8 +12,8 @@ use fragile;
 
 use chrono::prelude::*;
 
-use settings::{RecordFormat, SnapshotFormat};
-use utils;
+use crate::settings::{RecordFormat, SnapshotFormat};
+use crate::utils;
 
 // Our refcounted pipeline struct for containing all the media state we have to carry around.
 //
@@ -86,12 +86,10 @@ impl Pipeline {
                     Some(gst::PadProbeData::Event(ref ev))
                         if ev.get_type() == gst::EventType::Reconfigure =>
                     {
-                        return gst::PadProbeReturn::Drop;
+                        gst::PadProbeReturn::Drop
                     }
-                    _ => (),
+                    _ => gst::PadProbeReturn::Ok,
                 }
-
-                gst::PadProbeReturn::Ok
             });
         }
 
@@ -144,12 +142,12 @@ impl Pipeline {
 
     pub fn start(&self) -> Result<gst::StateChangeSuccess, gst::StateChangeError> {
         // This has no effect if called multiple times
-        self.pipeline.set_state(gst::State::Playing).into_result()
+        self.pipeline.set_state(gst::State::Playing)
     }
 
     pub fn stop(&self) -> Result<gst::StateChangeSuccess, gst::StateChangeError> {
         // This has no effect if called multiple times
-        self.pipeline.set_state(gst::State::Null).into_result()
+        self.pipeline.set_state(gst::State::Null)
     }
 
     // Take a snapshot of the current image and write it to the configured location
@@ -185,17 +183,13 @@ impl Pipeline {
             extension
         ));
 
-        let mut file = match File::create(&filename) {
-            Err(err) => {
-                return Err(format!(
-                    "Failed to create snapshot file {}: {}",
-                    filename.display(),
-                    err
-                )
-                .into());
-            }
-            Ok(file) => file,
-        };
+        let mut file = File::create(&filename).map_err(|err| {
+            format!(
+                "Failed to create snapshot file {}: {}",
+                filename.display(),
+                err
+            )
+        })?;
 
         // Then convert it from whatever format we got to PNG or JPEG as requested and write it out
         println!("Writing snapshot to {}", filename.display());
@@ -242,12 +236,8 @@ impl Pipeline {
             RecordFormat::Vp8WebM => ("queue ! videoconvert ! vp8enc deadline=1 ! webmmux ! filesink name=sink", "webm"),
         };
 
-        let bin = match gst::parse_bin_from_description(bin_description, true) {
-            Err(err) => {
-                return Err(format!("Failed to create recording pipeline: {}", err).into());
-            }
-            Ok(bin) => bin,
-        };
+        let bin = gst::parse_bin_from_description(bin_description, true)
+            .map_err(|err| format!("Failed to create recording pipeline: {}", err))?;
 
         // Get our file sink element by its name and set the location where to write the recording
         let sink = bin
@@ -268,9 +258,8 @@ impl Pipeline {
 
         // First try setting the recording bin to playing: if this fails we know this before it
         // potentially interferred with the other part of the pipeline
-        if let Err(_) = bin.set_state(gst::State::Playing).into_result() {
-            return Err("Failed to start recording".into());
-        }
+        bin.set_state(gst::State::Playing)
+            .map_err(|_err| "Failed to start recording")?;
 
         // Add the bin to the pipeline. This would only fail if there was already a bin with the
         // same name, which we ensured can't happen
@@ -289,7 +278,7 @@ impl Pipeline {
             .expect("Failed to get sink pad from recording bin");
 
         // If linking fails, we just undo what we did above
-        if let Err(err) = srcpad.link(&sinkpad).into_result() {
+        if let Err(err) = srcpad.link(&sinkpad) {
             // This might fail but we don't care anymore: we're in an error path
             let _ = self.pipeline.remove(&bin);
             let _ = bin.set_state(gst::State::Null);
@@ -353,7 +342,7 @@ impl Pipeline {
             // Asynchronously send the end-of-stream event to the sinkpad as this might block for a
             // while and our closure here might've been called from the main UI thread
             let sinkpad = sinkpad.clone();
-            async!(bin => |_| {
+            call_async!(bin => |_| {
                 sinkpad.send_event(gst::Event::new_eos().build());
             });
 
@@ -420,12 +409,12 @@ impl Pipeline {
 
                             // And then asynchronously remove it and set its state to Null
                             let pipeline = &self.pipeline;
-                            async!(pipeline => |pipeline| {
+                            call_async!(pipeline => |pipeline| {
                                 // Ignore if the bin was not in the pipeline anymore for whatever
                                 // reason. It's not a problem
                                 let _ = pipeline.remove(&bin);
 
-                                if let Err(err) = bin.set_state(gst::State::Null).into_result() {
+                                if let Err(err) = bin.set_state(gst::State::Null) {
                                     let bus = pipeline.get_bus().expect("Pipeline has no bus");
                                     let _ = bus.post(&Self::create_application_warning_message(format!("Failed to stop recording: {}", err).as_str()));
                                 }
