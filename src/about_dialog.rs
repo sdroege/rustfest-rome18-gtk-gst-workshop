@@ -9,7 +9,7 @@ pub fn show_about_dialog(application: &gtk::Application) {
         "https://github.com/sdroege/rustfest-rome18-gtk-gst-workshop",
     ));
     dialog.set_comments(Some("A webcam viewer written with gtk-rs and gstreamer-rs"));
-    dialog.set_copyright(Some("This is under MIT license"));
+    dialog.set_copyright(Some("Licensed MIT license"));
     dialog.set_program_name("WebCam Viewer");
     dialog.set_logo_icon_name(Some("camera-photo"));
 
