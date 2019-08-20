@@ -105,9 +105,6 @@ impl Default for Settings {
 
 // Our refcounted settings struct for containing all the widgets we have to carry around.
 //
-// Once subclassing is possible this would become a gtk::Dialog subclass instead, which
-// would simplify the code below considerably.
-//
 // This represents our settings dialog.
 #[derive(Clone)]
 struct SettingsDialog(Rc<SettingsDialogInner>);

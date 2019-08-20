@@ -16,9 +16,6 @@ use crate::settings::{RecordFormat, SnapshotFormat};
 use crate::utils;
 
 // Our refcounted pipeline struct for containing all the media state we have to carry around.
-//
-// Once subclassing is possible this would become a gst::Pipeline subclass instead, which
-// would simplify the code below considerably.
 #[derive(Clone)]
 pub struct Pipeline(Rc<PipelineInner>);
 

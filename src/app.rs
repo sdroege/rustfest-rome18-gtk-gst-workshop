@@ -26,9 +26,6 @@ const STYLE: &str = "
 
 // Our refcounted application struct for containing all the state we have to carry around.
 //
-// Once subclassing is possible this would become a gtk::Application subclass instead, which
-// would simplify the code below considerably.
-//
 // This represents our main application window.
 #[derive(Clone)]
 pub struct App(Rc<AppInner>);
@@ -246,9 +243,6 @@ impl App {
         // It has to be stored in a RefCell<Option<T>> to be able to pass it to a Fn closure. With
         // FnOnce this wouldn't be needed and the closure will only be called once, but the
         // bindings define all signal handlers as Fn.
-        //
-        // This is a workaround until subclassing can be used. We would then have our app struct
-        // directly inside a gtk::Application subclass.
         let app_container = RefCell::new(Some(app));
         application.connect_shutdown(move |_| {
             let app = app_container
